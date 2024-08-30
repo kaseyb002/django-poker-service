@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
-# from . import responses
+from . import responses
 
 @api_view(['POST'])
 def register(request):
@@ -23,9 +23,12 @@ def register(request):
     create_user_serializer = CreateUserSerializer(data=request.data, context={'request': request})
     create_user_serializer.is_valid(raise_exception=True)
     user = create_user_serializer.save()
-    user_serializer = UserSerializer(user)
     # groups_helper.join_podtalk_general_group(user)
-    return Response(user_serializer.data, status=status.HTTP_201_CREATED)
+    token, created = Token.objects.get_or_create(user=user)
+    return Response(
+        {'token': token.key},
+        status=status.HTTP_201_CREATED
+    )
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
@@ -69,3 +72,46 @@ def get_user(username):
     except User.DoesNotExist:
         pass
     return None
+
+@api_view(['GET'])
+def username_is_valid(request):
+    """
+    Check if username is available.
+    """
+    class Serializer(serializers.Serializer):
+        username = serializers.CharField(min_length=2, max_length=30)
+    serializer = Serializer(data=request.query_params, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+    username = serializer.data['username']
+    is_unique = username_is_unique(username)
+    if not is_unique:
+        return Response(data={"detail": "USERNAME_TAKEN"})
+    return Response(data={"detail": "VALID"})
+
+def username_is_unique(username):
+    try:
+        user = User.objects.get(username__iexact=username)
+        return False
+    except User.DoesNotExist:
+        return True
+
+@api_view(['PUT'])
+@permission_classes((IsAuthenticated, ))
+def update_username(request):
+    """
+    Updates user's username
+    """
+    class UpdateUsernameSerializer(serializers.Serializer):
+        username = serializers.CharField(min_length=2, max_length=30)
+    serializer = UpdateUsernameSerializer(data=request.data, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+    new_username = serializer.data['username']
+
+    if User.objects.filter(username__iexact=new_username).exists():
+        return responses.bad_request("USERNAME_TAKEN")
+
+    request.user.username = new_username
+    request.user.save()
+
+    serializer = UserSerializer(request.user, context={'request': request})
+    return Response(serializer.data)

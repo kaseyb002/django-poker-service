@@ -27,11 +27,6 @@ class TableSettings(models.Model):
     )
     turn_time_limit = models.DurationField(null=True, blank=True)
 
-class TablePermissions(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created = models.DateTimeField(auto_now_add=True)
-    can_edit_permissions = models.BooleanField(default=False)
-
 class TablePlayer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey('auth.User', related_name='memberships', on_delete=models.CASCADE)
@@ -49,6 +44,15 @@ class TablePlayer(models.Model):
 
     def image_url(self):
         return self.user.account.image_url
+
+class TablePermissions(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    table_player = models.OneToOneField(
+        TablePlayer,
+        on_delete=models.CASCADE,
+    )
+    can_edit_permissions = models.BooleanField(default=False)
 
 class NoLimitHoldEmGameSettings(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
