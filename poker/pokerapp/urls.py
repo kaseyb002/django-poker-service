@@ -1,8 +1,5 @@
 from django.urls import path, include
-from rest_framework.authtoken import views as authtoken_views
-from rest_framework.routers import DefaultRouter
-from pokerapp import views
-from .table_views import TableListView
+from .table_views import TableListView, TableRetrieveView
 from . import user_views, table_views
 
 urlpatterns = [
@@ -14,7 +11,6 @@ urlpatterns = [
     path('account/my_user/username', user_views.update_username),
     path('account/my_user/username/validate', user_views.username_is_valid),
     
-    path('tables/', TableListView.as_view(), name='table-list'),
-    # path('tables/settings/<uuid:pk>/', TableSettingsView.as_view(), name='table-settings'),
-    path('tables', table_views.create_table),
+    path('tables', TableListView.as_view(), name='table-list'),
+    path('tables/<uuid:pk>', TableRetrieveView.as_view(), name='table-detail'),
 ]

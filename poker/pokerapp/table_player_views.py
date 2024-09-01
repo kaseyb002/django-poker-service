@@ -1,3 +1,4 @@
+
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from .models import *
@@ -7,21 +8,25 @@ from pokerapp import models
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import generics, viewsets, status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.pagination import PageNumberPagination
 
-class TableRetrieveView(generics.RetrieveAPIView):
-    queryset = Table.objects.all()
+"""
+class TablePlayerRetrieveView(generics.RetrieveAPIView):
+    queryset = TablePlayer.objects.all()
     serializer_class = TableSerializer
     permission_classes = [IsAuthenticated]
     
     def get(self, request, *args, **kwargs):
-        pk = self.kwargs.get('pk')
-        table = Table.objects.filter(
+        table_pk = self.kwargs.get('table_pk')
+        table_player_pk = self.kwargs.get('table_player_pk')
+
+
+
+        table_player = TablePlayer.objects.filter(
             players__user__id=request.user.id
         ).get(
             pk=pk
-        )
+        ).get(
+            table_player_pk=
         serializer = TableSerializer(table, context={'request': request})
         return Response(serializer.data)
 
@@ -113,3 +118,4 @@ def create_table(request):
 
     serializer = TableSerializer(table, context={'request': request})
     return Response(serializer.data)
+"""
