@@ -40,6 +40,7 @@ class TablePlayerAdmin(admin.ModelAdmin):
 
 admin.site.register(TablePlayer, TablePlayerAdmin)
 
+"""
 class TablePermissionsAdmin(admin.ModelAdmin):
     list_display = ('id', 'username', 'table_id', 'table_name', 'can_edit_permissions')
 
@@ -53,3 +54,19 @@ class TablePermissionsAdmin(admin.ModelAdmin):
         return obj.table_player.user.username
 
 admin.site.register(TablePermissions, TablePermissionsAdmin)
+"""
+
+
+class TableInviteAdmin(admin.ModelAdmin):
+    list_display = ('id', 'created_by_username', 'table_id', 'table_name','used_by')
+
+    def table_id(self, obj):
+        return obj.table.id
+
+    def table_name(self, obj):
+        return obj.table.name
+
+    def created_by_username(self, obj):
+        return obj.created_by.username
+
+admin.site.register(TableInvite, TableInviteAdmin)

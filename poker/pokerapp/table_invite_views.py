@@ -11,20 +11,94 @@ from rest_framework.permissions import IsAuthenticated
 from . import table_player_fetchers 
 from . import responses
 
-class MyTablePlayerRetrieveView(generics.RetrieveAPIView):
-    queryset = TablePlayer.objects.all()
-    serializer_class = TablePlayerSerializer
+@api_view(['POST'])
+def join_table(request):
+    """
+    Joins table using an invite code
+    """
+    class Serializer(serializers.Serializer):
+        code = serializers.CharField()
+    serializer = Serializer(data=request.data, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+    code = serializer.data['code']
+
+    invite = TableInvite.objects.get(
+        code=code
+    )
+    if invite.used_by:
+        return responses.bad_request("Invite code has already been used.")
+
+    # set permissions
+    player_permissions = TablePermissions()
+    player_permissions.save()
+
+    # join table
+    table_player = table_player_fetchers.get_table_player(
+        user_id=request.user.id, 
+        table_id=invite.table.id,
+    )
+    if not table_player:
+        table_player = TablePlayer(
+            user=request.user,
+            table=table,
+            permissions=player_permissions,
+        )
+        table_player.save()
+
+    if invite.is_one_time:
+        invite.used_by = request.user
+        invite.save()
+
+    serializer = TablePlayerSerializer(table_player, context={'request': request})
+    return Response(
+        serializer.data,
+        status=status.HTTP_201_CREATED,
+    )
+
+class TableInviteListView(generics.ListCreateAPIView):
+    pagination_class = NumberOnlyPagination
     permission_classes = [IsAuthenticated]
-    
-    def get(self, request, *args, **kwargs):
+
+    def list(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_player = table_player_fetchers.get_table_player(
+        invites = TableInvite.objects.filter(
+            table__pk=table_pk
+        ).filter(
+            created_by__id=request.user.id
+        )
+
+        # Apply pagination
+        page = self.paginate_queryset(invites)
+        if page is not None:
+            serializer = TableInviteSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
+        # If no pagination is applied, return all data
+        serializer = TableInviteSerializer(tables, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        table_pk = self.kwargs.get('table_pk')
+
+        table_player = table_player_fetchers.get_table_player(
             user_id=request.user.id, 
             table_id=table_pk,
         )
-        serializer = TablePlayerSerializer(my_table_player, context={'request': request})
+
+        if not table_player.permissions.can_send_invite:
+            return responses.unauthorized("User does not have invite permissions.")
+
+        #create invite
+        invite = TableInvite(
+            created_by=request.user,
+            table=table_player.table,
+        )
+        invite.save()
+            
+        serializer = TableInviteSerializer(invite, context={'request': request})
         return Response(serializer.data)
 
+"""
 class TablePlayerRetrieveView(generics.RetrieveAPIView):
     queryset = TablePlayer.objects.all()
     serializer_class = TablePlayerSerializer
@@ -66,6 +140,7 @@ class TablePlayerListView(generics.ListAPIView):
         # If no pagination is applied, return all data
         serializer = TablePlayerSerializer(tables, many=True, context={'request': request})
         return Response(serializer.data)
+"""
 
 """
     def create(self, request, *args, **kwargs):

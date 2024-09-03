@@ -1,4 +1,5 @@
 import uuid
+import shortuuid
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -27,10 +28,31 @@ class TableSettings(models.Model):
     )
     turn_time_limit = models.DurationField(null=True, blank=True)
 
+class TablePermissions(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    can_edit_permissions = models.BooleanField(default=False)
+    can_edit_settings = models.BooleanField(default=False)
+    can_send_invite = models.BooleanField(default=True)
+    can_remove_player = models.BooleanField(default=False)
+    can_sit_player_out = models.BooleanField(default=False)
+    can_force_move = models.BooleanField(default=False)
+    can_play = models.BooleanField(default=True)
+    can_chat = models.BooleanField(default=True)
+
+class TableInvite(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_by = models.ForeignKey('auth.User', related_name='created_invites', on_delete=models.SET_NULL, null=True)
+    table = models.ForeignKey(Table, related_name='invites', on_delete=models.CASCADE)
+    code = models.CharField(max_length=22, unique=True, editable=False, default=shortuuid.uuid)
+    is_one_time = models.BooleanField(default=True)
+    used_by = models.ForeignKey('auth.User', related_name='used_invites', on_delete=models.SET_NULL, null=True)
+
 class TablePlayer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey('auth.User', related_name='memberships', on_delete=models.CASCADE)
     table = models.ForeignKey(Table, related_name='players', on_delete=models.CASCADE)
+    permissions = models.OneToOneField(TablePermissions, null=True, on_delete=models.SET_NULL)
     is_sitting = models.BooleanField(default=False)
 
     def username(self):
@@ -44,15 +66,6 @@ class TablePlayer(models.Model):
 
     def image_url(self):
         return self.user.account.image_url
-
-class TablePermissions(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created = models.DateTimeField(auto_now_add=True)
-    table_player = models.OneToOneField(
-        TablePlayer,
-        on_delete=models.CASCADE,
-    )
-    can_edit_permissions = models.BooleanField(default=False)
 
 class NoLimitHoldEmGameSettings(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

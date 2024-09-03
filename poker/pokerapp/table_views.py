@@ -59,19 +59,26 @@ class TableListView(generics.ListCreateAPIView):
         table_settings = TableSettings(table=table)
         table_settings.save()
 
+        # set permissions
+        admin_permissions = TablePermissions(
+            can_edit_permissions = True,
+            can_edit_settings = True,
+            can_send_invite = True,
+            can_remove_player = True,
+            can_sit_player_out = True,
+            can_force_move = True,
+            can_play = True,
+            can_chat = True,
+        )
+        admin_permissions.save()
+
         # join table
         table_player = TablePlayer(
             user=request.user,
             table=table,
+            permissions=admin_permissions,
         )
         table_player.save()
-
-        # set permissions
-        table_permissions = TablePermissions(
-            table_player=table_player,
-            can_edit_permissions=True,
-        )
-        table_permissions.save()
 
         serializer = TableSerializer(table, context={'request': request})
         return Response(serializer.data)
@@ -79,37 +86,3 @@ class TableListView(generics.ListCreateAPIView):
 class TableSettingsView(generics.RetrieveAPIView):
     queryset = TableSettings.objects.all()
     serializer_class = TableSettingsSerializer
-
-@api_view(['POST'])
-@permission_classes((IsAuthenticated, ))
-def create_table(request):
-    class Serializer(serializers.Serializer):
-        name = serializers.CharField()
-    serializer = Serializer(data=request.data, context={'request': request})
-    serializer.is_valid(raise_exception=True)
-    name = serializer.data['name']
-    
-    # create table
-    table = Table(name=name)
-    table.save()
-
-    # create settings
-    table_settings = TableSettings(table=table)
-    table_settings.save()
-
-    # join table
-    table_player = TablePlayer(
-        user=request.user,
-        table=table,
-    )
-    table_player.save()
-
-    # set permissions
-    table_permissions = TablePermissions(
-        table_player=table_player,
-        can_edit_permissions=True,
-    )
-    table_permissions.save()
-
-    serializer = TableSerializer(table, context={'request': request})
-    return Response(serializer.data)

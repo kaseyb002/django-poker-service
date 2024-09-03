@@ -84,6 +84,47 @@ class TableSettingsSerializer(serializers.ModelSerializer):
             'turn_time_limit',
         ]
 
+class TablePermissionsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TablePermissions
+        fields = [
+            'can_edit_permissions',
+            'can_edit_settings',
+            'can_send_invite',
+            'can_remove_player',
+            'can_sit_player_out',
+            'can_force_move',
+            'can_play',
+            'can_chat',
+        ]
+
+class TableInviteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TableInvite
+        fields = [
+            'id',
+            'table',
+            'created_by',
+            'code',
+            'is_one_time',
+            'used_by',
+        ]
+
+class TablePlayerSerializer(serializers.ModelSerializer):
+    permissions = TablePermissionsSerializer(read_only=True)
+
+    class Meta:
+        model = TablePlayer
+        fields = [
+            'id',
+            'table',
+            'user',
+            'username',
+            'image_url',
+            'permissions',
+            'is_sitting',
+        ]
+
 class NoLimitHoldEmGameSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = TableSettings

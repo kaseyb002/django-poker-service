@@ -24,9 +24,13 @@ def register(request):
     create_user_serializer.is_valid(raise_exception=True)
     user = create_user_serializer.save()
     # groups_helper.join_podtalk_general_group(user)
+    user_serializer = UserSerializer(user, context={'request': request})
     token, created = Token.objects.get_or_create(user=user)
     return Response(
-        {'token': token.key},
+        {
+            'token': token.key,
+            'user': user_serializer.data,
+        },
         status=status.HTTP_201_CREATED
     )
 
