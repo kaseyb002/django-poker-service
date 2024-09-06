@@ -21,3 +21,6 @@ def user_is_banned():
 
 def user_lacks_permission():
     return unauthorized("User does not have permission for this action.")
+
+def no_admins_remaining():
+    return bad_request("No other admins remaining.")

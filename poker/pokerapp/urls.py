@@ -19,7 +19,7 @@ urlpatterns = [
     # tables
     path('tables', TableListView.as_view(), name='table-list'),
     path('tables/<uuid:pk>', TableRetrieveView.as_view(), name='table-detail'),
-    path('tables/<uuid:pk>/settings', TableSettingsRetrieveView.as_view(), name='table-settings'),
+    path('tables/<uuid:table_pk>/settings', TableSettingsRetrieveView.as_view(), name='table-settings'),
 
     # players
     path('tables/<uuid:table_pk>/players', TablePlayerListView.as_view(), name='table-players'),
@@ -31,5 +31,6 @@ urlpatterns = [
 
     # invites
     path('tables/join', table_invite_views.join_table),
+    path('tables/<uuid:table_pk>/leave', table_invite_views.leave_table),
     path('tables/<uuid:table_pk>/invites', TableInviteListView.as_view(), name='table-invites'),
 ]

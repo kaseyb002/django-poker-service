@@ -38,6 +38,12 @@ class TablePlayerPermissionsUpdateView(generics.UpdateAPIView):
             context={'request': request},
         )
         permissions_serializer.is_valid(raise_exception=True)
+        if not permissions_serializer.validated_data['can_edit_permissions']:
+            if not table_player_fetchers.get_table_has_another_admin(
+                user_id=user_id,
+                table_id=table_pk,
+            ):
+                return responses.no_admins_remaining()
         permissions_serializer.save()
         serializer = TablePlayerSerializer(table_player, context={'request': request})
         return Response(serializer.data)

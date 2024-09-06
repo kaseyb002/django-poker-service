@@ -40,21 +40,10 @@ class TablePlayerAdmin(admin.ModelAdmin):
 
 admin.site.register(TablePlayer, TablePlayerAdmin)
 
-"""
 class TablePermissionsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'username', 'table_id', 'table_name', 'can_edit_permissions')
-
-    def table_id(self, obj):
-        return obj.table_player.table.id
-
-    def table_name(self, obj):
-        return obj.table_player.table.name
-
-    def username(self, obj):
-        return obj.table_player.user.username
+    list_display = ('id', 'can_edit_permissions')
 
 admin.site.register(TablePermissions, TablePermissionsAdmin)
-"""
 
 
 class TableInviteAdmin(admin.ModelAdmin):

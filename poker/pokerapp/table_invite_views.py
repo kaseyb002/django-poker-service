@@ -40,7 +40,7 @@ def join_table(request):
     if not table_player:
         table_player = TablePlayer(
             user=request.user,
-            table=table,
+            table=invite.table,
             permissions=player_permissions,
         )
         table_player.save()
@@ -53,6 +53,27 @@ def join_table(request):
     return Response(
         serializer.data,
         status=status.HTTP_201_CREATED,
+    )
+
+@api_view(['DELETE'])
+def leave_table(request, *args, **kwargs):
+    """
+    Leaves the table
+    """
+    table_pk = kwargs.get('table_pk')
+    table_player = table_player_fetchers.get_table_player(
+        user_id=request.user.id, 
+        table_id=table_pk,
+    )
+    if not table_player_fetchers.get_table_has_another_admin(
+        user_id=request.user.id,
+        table_id=table_pk,
+    ):
+        return responses.no_admins_remaining()
+    table_player.delete()
+    return Response(
+        serializer.data,
+        status=status.HTTP_204_NO_CONTENT,
     )
 
 class TableInviteListView(generics.ListCreateAPIView):

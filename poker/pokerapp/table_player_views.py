@@ -25,9 +25,7 @@ class MyTablePlayerRetrieveView(generics.RetrieveAPIView):
         serializer = TablePlayerSerializer(my_table_player, context={'request': request})
         return Response(serializer.data)
 
-class TablePlayerRetrieveView(generics.RetrieveAPIView):
-    queryset = TablePlayer.objects.all()
-    serializer_class = TablePlayerSerializer
+class TablePlayerRetrieveView(generics.RetrieveDestroyAPIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, *args, **kwargs):
@@ -39,6 +37,27 @@ class TablePlayerRetrieveView(generics.RetrieveAPIView):
         )
         serializer = TablePlayerSerializer(table_player, context={'request': request})
         return Response(serializer.data)
+
+    def delete(self, request, *args, **kwargs):
+        table_pk = self.kwargs.get('table_pk')
+        user_pk = self.kwargs.get('user_pk')
+        table_player = table_player_fetchers.get_table_player(
+            user_id=user_pk, 
+            table_id=table_pk,
+        )
+        my_table_player = table_player_fetchers.get_table_player(
+            user_id=request.user.id, 
+            table_id=table_pk,
+        )
+        if not my_table_player.permissions.can_remove_player:
+            return responses.unauthorized("User cannot remove players")
+        if not table_player_fetchers.get_table_has_another_admin(
+            user_id=user_pk,
+            table_id=table_pk,
+        ):
+            return responses.no_admins_remaining()
+        table_player.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     
 class TablePlayerListView(generics.ListAPIView):
     queryset = Table.objects.all()
