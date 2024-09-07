@@ -24,7 +24,7 @@ urlpatterns = [
     # members
     path('tables/<uuid:table_pk>/members', TableMemberListView.as_view(), name='table-members'),
     path('tables/<uuid:table_pk>/members/me', MyTableMemberRetrieveView.as_view(), name='my-table-member'),
-    path('tables/<uuid:table_pk>/members/sitting', SittingTableMemberListView.as_view(), name='sitting-table-members'),
+    # path('tables/<uuid:table_pk>/members/sitting', SittingTableMemberListView.as_view(), name='sitting-table-members'),
     path('tables/<uuid:table_pk>/members/<int:user_pk>', TableMemberRetrieveView.as_view(), name='table-member'),
 
     #permissions

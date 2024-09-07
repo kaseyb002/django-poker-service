@@ -80,6 +80,12 @@ class TableListView(generics.ListCreateAPIView):
         )
         table_member.save()
 
+        # create current game
+        current_game = CurrentGame(
+            table=table,
+        )
+        current_game.save()
+
         serializer = TableSerializer(table, context={'request': request})
         return Response(serializer.data)
 

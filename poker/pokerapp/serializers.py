@@ -112,7 +112,7 @@ class TableInviteSerializer(serializers.ModelSerializer):
             'used_by',
         ]
 
-class TableModelSerializer(serializers.ModelSerializer):
+class TableMemberSerializer(serializers.ModelSerializer):
     permissions = TablePermissionsSerializer(read_only=True)
 
     class Meta:
@@ -124,7 +124,6 @@ class TableModelSerializer(serializers.ModelSerializer):
             'username',
             'image_url',
             'permissions',
-            'is_sitting',
         ]
 
 class NoLimitHoldEmGameSerializer(serializers.ModelSerializer):
