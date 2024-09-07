@@ -18,7 +18,7 @@ class TableRetrieveView(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get('pk')
         table = Table.objects.filter(
-            players__user__id=request.user.id
+            members__user__id=request.user.id
         ).get(
             pk=pk
         )
@@ -32,7 +32,7 @@ class TableListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        tables = Table.objects.filter(players__user__id=request.user.id)
+        tables = Table.objects.filter(members__user__id=request.user.id)
 
         # Apply pagination
         page = self.paginate_queryset(tables)
@@ -64,7 +64,7 @@ class TableListView(generics.ListCreateAPIView):
             can_edit_permissions = True,
             can_edit_settings = True,
             can_send_invite = True,
-            can_remove_player = True,
+            can_remove_member = True,
             can_sit_player_out = True,
             can_force_move = True,
             can_play = True,
@@ -73,12 +73,12 @@ class TableListView(generics.ListCreateAPIView):
         admin_permissions.save()
 
         # join table
-        table_player = TablePlayer(
+        table_member = TableMember(
             user=request.user,
             table=table,
             permissions=admin_permissions,
         )
-        table_player.save()
+        table_member.save()
 
         serializer = TableSerializer(table, context={'request': request})
         return Response(serializer.data)

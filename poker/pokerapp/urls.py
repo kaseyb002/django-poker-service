@@ -1,9 +1,9 @@
 from django.urls import path, include
 from .table_views import TableListView, TableRetrieveView
 from .table_settings_views import TableSettingsRetrieveView
-from .table_player_views import MyTablePlayerRetrieveView, TablePlayerRetrieveView, TablePlayerListView
+from .table_member_views import MyTableMemberRetrieveView, TableMemberRetrieveView, TableMemberListView, SittingTableMemberListView
 from .table_invite_views import TableInviteListView
-from .table_player_permissions import TablePlayerPermissionsUpdateView
+from .table_member_permissions import TableMemberPermissionsUpdateView
 from . import table_invite_views
 from . import user_views, table_views
 
@@ -21,13 +21,14 @@ urlpatterns = [
     path('tables/<uuid:pk>', TableRetrieveView.as_view(), name='table-detail'),
     path('tables/<uuid:table_pk>/settings', TableSettingsRetrieveView.as_view(), name='table-settings'),
 
-    # players
-    path('tables/<uuid:table_pk>/players', TablePlayerListView.as_view(), name='table-players'),
-    path('tables/<uuid:table_pk>/players/me', MyTablePlayerRetrieveView.as_view(), name='my-table-player'),
-    path('tables/<uuid:table_pk>/players/<int:user_pk>', TablePlayerRetrieveView.as_view(), name='table-player'),
+    # members
+    path('tables/<uuid:table_pk>/members', TableMemberListView.as_view(), name='table-members'),
+    path('tables/<uuid:table_pk>/members/me', MyTableMemberRetrieveView.as_view(), name='my-table-member'),
+    path('tables/<uuid:table_pk>/members/sitting', SittingTableMemberListView.as_view(), name='sitting-table-members'),
+    path('tables/<uuid:table_pk>/members/<int:user_pk>', TableMemberRetrieveView.as_view(), name='table-member'),
 
     #permissions
-    path('tables/<uuid:table_pk>/players/<int:user_pk>/permissions', TablePlayerPermissionsUpdateView.as_view(), name='table-player-permissions'),
+    path('tables/<uuid:table_pk>/members/<int:user_pk>/permissions', TableMemberPermissionsUpdateView.as_view(), name='table-member-permissions'),
 
     # invites
     path('tables/join', table_invite_views.join_table),

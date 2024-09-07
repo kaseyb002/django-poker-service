@@ -73,6 +73,7 @@ class TableSerializer(serializers.ModelSerializer):
             'created', 
             'name', 
             'image_url',
+            'selected_game',
         ]
 
 class TableSettingsSerializer(serializers.ModelSerializer):
@@ -92,7 +93,7 @@ class TablePermissionsSerializer(serializers.ModelSerializer):
             'can_edit_permissions',
             'can_edit_settings',
             'can_send_invite',
-            'can_remove_player',
+            'can_remove_member',
             'can_sit_player_out',
             'can_force_move',
             'can_play',
@@ -111,11 +112,11 @@ class TableInviteSerializer(serializers.ModelSerializer):
             'used_by',
         ]
 
-class TablePlayerSerializer(serializers.ModelSerializer):
+class TableModelSerializer(serializers.ModelSerializer):
     permissions = TablePermissionsSerializer(read_only=True)
 
     class Meta:
-        model = TablePlayer
+        model = TableMember
         fields = [
             'id',
             'table',
@@ -126,9 +127,9 @@ class TablePlayerSerializer(serializers.ModelSerializer):
             'is_sitting',
         ]
 
-class NoLimitHoldEmGameSettingsSerializer(serializers.ModelSerializer):
+class NoLimitHoldEmGameSerializer(serializers.ModelSerializer):
     class Meta:
-        model = TableSettings
+        model = NoLimitHoldEmGame
         fields = [
             'id', 
             'created', 
@@ -136,4 +137,15 @@ class NoLimitHoldEmGameSettingsSerializer(serializers.ModelSerializer):
             'auto_deal', 
             'big_blind',
             'small_blind',
+        ]
+
+class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NoLimitHoldEmHand
+        fields = [
+            'id', 
+            'table',
+            'created', 
+            'updated', 
+            'hand_json', 
         ]

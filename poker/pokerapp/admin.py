@@ -26,7 +26,7 @@ class TableSettingsAdmin(admin.ModelAdmin):
 
 admin.site.register(TableSettings, TableSettingsAdmin)
 
-class TablePlayerAdmin(admin.ModelAdmin):
+class TableMemberAdmin(admin.ModelAdmin):
     list_display = ('id', 'username', 'table_id', 'table_name')
 
     def table_id(self, obj):
@@ -38,13 +38,12 @@ class TablePlayerAdmin(admin.ModelAdmin):
     def username(self, obj):
         return obj.user.username
 
-admin.site.register(TablePlayer, TablePlayerAdmin)
+admin.site.register(TableMember, TableMemberAdmin)
 
 class TablePermissionsAdmin(admin.ModelAdmin):
     list_display = ('id', 'can_edit_permissions')
 
 admin.site.register(TablePermissions, TablePermissionsAdmin)
-
 
 class TableInviteAdmin(admin.ModelAdmin):
     list_display = ('id', 'created_by_username', 'table_id', 'table_name','used_by')

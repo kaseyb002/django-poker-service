@@ -7,7 +7,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAuthenticated
-from . import table_player_fetchers 
+from . import table_member_fetchers 
 from . import responses
 
 class TableSettingsRetrieveView(generics.RetrieveUpdateAPIView):
@@ -16,7 +16,7 @@ class TableSettingsRetrieveView(generics.RetrieveUpdateAPIView):
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get('table_pk')
         table_settings = TableSettings.objects.filter(
-            table__players__user__id=request.user.id
+            table__members__user__id=request.user.id
         ).get(
             table__pk=pk
         )
@@ -25,11 +25,11 @@ class TableSettingsRetrieveView(generics.RetrieveUpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_player = table_player_fetchers.get_table_player(
+        my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
             table_id=table_pk,
         )
-        if not my_table_player.permissions.can_edit_settings:
+        if not my_table_member.permissions.can_edit_settings:
             return responses.unauthorized("User cannot edit settings")
         table_settings = TableSettings.objects.get(
             table__pk=table_pk
