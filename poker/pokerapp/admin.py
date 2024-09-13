@@ -58,3 +58,14 @@ class TableInviteAdmin(admin.ModelAdmin):
         return obj.created_by.username
 
 admin.site.register(TableInvite, TableInviteAdmin)
+
+class NoLimitHoldEmGameAdmin(admin.ModelAdmin):
+    list_display = ('id', 'table_id', 'table_name','big_blind',)
+
+    def table_id(self, obj):
+        return obj.table.id
+
+    def table_name(self, obj):
+        return obj.table.name
+
+admin.site.register(NoLimitHoldEmGame, NoLimitHoldEmGameAdmin)

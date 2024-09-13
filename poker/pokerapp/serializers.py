@@ -98,6 +98,8 @@ class TablePermissionsSerializer(serializers.ModelSerializer):
             'can_force_move',
             'can_play',
             'can_chat',
+            'can_deal',
+            'can_adjust_chips',
         ]
 
 class TableInviteSerializer(serializers.ModelSerializer):
@@ -136,6 +138,22 @@ class NoLimitHoldEmGameSerializer(serializers.ModelSerializer):
             'auto_deal', 
             'big_blind',
             'small_blind',
+            'starting_chip_count',
+        ]
+
+class NoLimitHoldEmGamePlayerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NoLimitHoldEmGamePlayer
+        fields = [
+            'id', 
+            'created', 
+            'game',
+            'table_id',
+            'user_id',
+            'username',
+            'image_url',
+            'chip_count',
+            'is_sitting',
         ]
 
 class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
@@ -147,4 +165,18 @@ class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
             'created', 
             'updated', 
             'hand_json', 
+            'completed',
+            'players',
+        ]
+
+class CurrentGameSerializer(serializers.ModelSerializer):
+    no_limit_hold_em_game = NoLimitHoldEmGameSerializer(read_only=True)
+
+    class Meta:
+        model = CurrentGame
+        fields = [
+            'id',
+            'table',
+            'selected_game',
+            'no_limit_hold_em_game',
         ]

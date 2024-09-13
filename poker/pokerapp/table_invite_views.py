@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from django.contrib.auth.models import User
 from .models import *
 from .serializers import *
@@ -10,6 +9,7 @@ from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from . import table_member_fetchers 
 from . import responses
+from . import table_member_write_helpers
 
 @api_view(['POST'])
 def join_table(request):
@@ -33,23 +33,17 @@ def join_table(request):
     member_permissions.save()
 
     # join table
-    table_member = table_member_fetchers.get_table_member(
-        user_id=request.user.id, 
+    table_member = table_member_write_helpers.join_table(
+        user=request.user, 
         table_id=invite.table.id,
+        permissions=member_permissions,
     )
-    if not table_member:
-        table_member = Tablemember(
-            user=request.user,
-            table=invite.table,
-            permissions=member_permissions,
-        )
-        table_member.save()
 
     if invite.is_one_time:
         invite.used_by = request.user
         invite.save()
 
-    serializer = TablememberSerializer(table_member, context={'request': request})
+    serializer = TableMemberSerializer(table_member, context={'request': request})
     return Response(
         serializer.data,
         status=status.HTTP_201_CREATED,

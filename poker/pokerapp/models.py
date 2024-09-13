@@ -40,10 +40,10 @@ class TablePermissions(models.Model):
     can_remove_member = models.BooleanField(default=False)
     can_force_move = models.BooleanField(default=False)
     can_play = models.BooleanField(default=True)
-    # hold em
     can_sit_player_out = models.BooleanField(default=False)
     can_chat = models.BooleanField(default=True)
     can_adjust_chips = models.BooleanField(default=False)
+    can_deal = models.BooleanField(default=True)
 
 class TableInvite(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -55,6 +55,7 @@ class TableInvite(models.Model):
 
 class TableMember(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey('auth.User', related_name='memberships', on_delete=models.CASCADE)
     table = models.ForeignKey(Table, related_name='members', on_delete=models.CASCADE)
     permissions = models.OneToOneField(TablePermissions, null=True, on_delete=models.SET_NULL)
@@ -71,6 +72,9 @@ class TableMember(models.Model):
     def image_url(self):
         return self.user.account.image_url
 
+    class Meta:
+        ordering = ['created']
+
 class NoLimitHoldEmGame(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
@@ -78,14 +82,11 @@ class NoLimitHoldEmGame(models.Model):
     auto_deal = models.BooleanField(default=True)
     big_blind = models.DecimalField(max_digits=10, decimal_places=2, default=0.10)
     small_blind = models.DecimalField(max_digits=10, decimal_places=2, default=0.05)
+    starting_chip_count = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
 
-class NoLimitHoldEmHand(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    game = models.ForeignKey(NoLimitHoldEmGame, related_name='hands', on_delete=models.CASCADE)
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
-    hand_json = models.JSONField(null=False, blank=False)
-
+    class Meta:
+        ordering = ['-created']
+       
 class NoLimitHoldEmGamePlayer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
@@ -94,12 +95,33 @@ class NoLimitHoldEmGamePlayer(models.Model):
     chip_count = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
     is_sitting = models.BooleanField(default=False)
 
+    def user_id(self):
+        return self.table_member.user.id
+
+    def table_id(self):
+        return self.table_member.table.id
+
     def username(self):
-        return self.table_member.username
+        return self.table_member.username()
 
     def image_url(self):
-        return self.table_member.image_url
+        return self.table_member.image_url()
 
+class NoLimitHoldEmHand(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    game = models.ForeignKey(NoLimitHoldEmGame, related_name='hands', on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    completed = models.DateTimeField(null=True)
+    players = models.ManyToManyField(NoLimitHoldEmGamePlayer)
+    hand_json = models.JSONField(null=False, blank=False)
+
+    def is_completed(self):
+        return not completed
+
+    class Meta:
+        ordering = ['-created']
+ 
 class CurrentGame(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)

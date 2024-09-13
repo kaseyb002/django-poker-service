@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+from . import table_member_write_helpers
 
 class TableRetrieveView(generics.RetrieveAPIView):
     queryset = Table.objects.all()
@@ -69,20 +70,28 @@ class TableListView(generics.ListCreateAPIView):
             can_force_move = True,
             can_play = True,
             can_chat = True,
+            can_adjust_chips=True,
+            can_deal=True,
         )
         admin_permissions.save()
 
         # join table
-        table_member = TableMember(
-            user=request.user,
-            table=table,
+        table_member = table_member_write_helpers.join_table(
+            user=request.user, 
+            table_id=table.id,
             permissions=admin_permissions,
         )
-        table_member.save()
+
+        # setup default hold em game
+        hold_em_game = NoLimitHoldEmGame(
+            table=table
+        )
+        hold_em_game.save()
 
         # create current game
         current_game = CurrentGame(
             table=table,
+            no_limit_hold_em_game=hold_em_game,
         )
         current_game.save()
 

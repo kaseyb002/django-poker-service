@@ -4,8 +4,9 @@ from .table_settings_views import TableSettingsRetrieveView
 from .table_member_views import MyTableMemberRetrieveView, TableMemberRetrieveView, TableMemberListView, SittingTableMemberListView
 from .table_invite_views import TableInviteListView
 from .table_member_permissions import TableMemberPermissionsUpdateView
-from . import table_invite_views
-from . import user_views, table_views
+from .game_views import CurrentGameRetrieveView
+from . import table_invite_views, user_views, table_views, no_limit_hold_em_views
+from .no_limit_hold_em_views import SittingPlayersListView, PlayerRetrieveView
 
 urlpatterns = [
     # user 
@@ -20,6 +21,7 @@ urlpatterns = [
     path('tables', TableListView.as_view(), name='table-list'),
     path('tables/<uuid:pk>', TableRetrieveView.as_view(), name='table-detail'),
     path('tables/<uuid:table_pk>/settings', TableSettingsRetrieveView.as_view(), name='table-settings'),
+    path('tables/<uuid:table_pk>/current_game', CurrentGameRetrieveView.as_view(), name='current-game'),
 
     # members
     path('tables/<uuid:table_pk>/members', TableMemberListView.as_view(), name='table-members'),
@@ -34,4 +36,12 @@ urlpatterns = [
     path('tables/join', table_invite_views.join_table),
     path('tables/<uuid:table_pk>/leave', table_invite_views.leave_table),
     path('tables/<uuid:table_pk>/invites', TableInviteListView.as_view(), name='table-invites'),
+
+    # no limit hold em
+    path('no_limit_hold_em_games/<uuid:game_pk>/sit', no_limit_hold_em_views.sit, name='hold_em_sit'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/sit_out', no_limit_hold_em_views.sit_out, name='hold_em_sit_out'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/sitting_players', SittingPlayersListView.as_view(), name='hold_em_sitting_players'),
+    path('no_limit_hold_em_game_players/<uuid:player_pk>', PlayerRetrieveView.as_view(), name='hold_em_player'),
+    path('no_limit_hold_em_game_players/<uuid:player_pk>/sit_out', no_limit_hold_em_views.sit_player_out, name='hold_em_sit_out_player'),
+    path('no_limit_hold_em_game_players/<uuid:player_pk>/add_chips', no_limit_hold_em_views.add_chips, name='hold_em_add_chips'),
 ]
