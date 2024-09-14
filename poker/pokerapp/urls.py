@@ -7,6 +7,7 @@ from .table_member_permissions import TableMemberPermissionsUpdateView
 from .game_views import CurrentGameRetrieveView
 from . import table_invite_views, user_views, table_views, no_limit_hold_em_views
 from .no_limit_hold_em_views import SittingPlayersListView, PlayerRetrieveView
+from .no_limit_hold_em_adjustment_views import NoLimitHoldChipAdjustmentListView
 
 urlpatterns = [
     # user 
@@ -44,4 +45,5 @@ urlpatterns = [
     path('no_limit_hold_em_game_players/<uuid:player_pk>', PlayerRetrieveView.as_view(), name='hold_em_player'),
     path('no_limit_hold_em_game_players/<uuid:player_pk>/sit_out', no_limit_hold_em_views.sit_player_out, name='hold_em_sit_out_player'),
     path('no_limit_hold_em_game_players/<uuid:player_pk>/add_chips', no_limit_hold_em_views.add_chips, name='hold_em_add_chips'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/chip_adjustments', NoLimitHoldChipAdjustmentListView.as_view(), name='hold_em_chip_adjustments'),
 ]

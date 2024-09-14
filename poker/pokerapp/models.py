@@ -121,6 +121,19 @@ class NoLimitHoldEmHand(models.Model):
 
     class Meta:
         ordering = ['-created']
+
+class NoLimitHoldEmChipAdjusment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    player = models.ForeignKey(NoLimitHoldEmGamePlayer, related_name='chip_adjustments', on_delete=models.CASCADE)
+    adjusted_by = models.ForeignKey(TableMember, related_name='chip_adjustments', on_delete=models.SET_NULL, null=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
+
+    def summary_statement(self):
+        if self.amount < 0:
+            return "Subtracted some chips"
+        else:
+            return "Added some chips"
  
 class CurrentGame(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

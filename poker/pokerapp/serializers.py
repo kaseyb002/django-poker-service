@@ -169,6 +169,17 @@ class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
             'players',
         ]
 
+class NoLimitHoldEmChipAdjustmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NoLimitHoldEmChipAdjusment
+        fields = [
+            'id', 
+            'created', 
+            'player',
+            'amount', 
+            'summary_statement', 
+        ]
+
 class CurrentGameSerializer(serializers.ModelSerializer):
     no_limit_hold_em_game = NoLimitHoldEmGameSerializer(read_only=True)
 

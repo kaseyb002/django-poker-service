@@ -192,5 +192,14 @@ def add_chips(request, *args, **kwargs):
     if player.chip_count < 0:
         player.chip_count = 0
     player.save()
+
+    # record adjustment
+    adjustment = NoLimitHoldEmChipAdjusment(
+        player=player,
+        adjusted_by=my_table_member,
+        amount=amount,
+    )
+    adjustment.save()
+
     serializer = NoLimitHoldEmGamePlayerSerializer(player, context={'request': request})
     return Response(serializer.data)
