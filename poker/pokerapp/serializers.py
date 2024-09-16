@@ -161,7 +161,7 @@ class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
         model = NoLimitHoldEmHand
         fields = [
             'id', 
-            'table',
+            'game',
             'created', 
             'updated', 
             'hand_json', 

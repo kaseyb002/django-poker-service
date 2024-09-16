@@ -69,3 +69,8 @@ class NoLimitHoldEmGameAdmin(admin.ModelAdmin):
         return obj.table.name
 
 admin.site.register(NoLimitHoldEmGame, NoLimitHoldEmGameAdmin)
+
+class NoLimitHoldEmHandAdmin(admin.ModelAdmin):
+    list_display = ('id',)
+    
+admin.site.register(NoLimitHoldEmHand, NoLimitHoldEmHandAdmin)

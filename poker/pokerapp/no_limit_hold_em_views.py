@@ -12,6 +12,66 @@ from . import table_member_fetchers
 from . import responses
 from . import table_member_write_helpers
 
+class HoldEmGameRetrieveView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        game_pk = self.kwargs.get('game_pk')
+        game = NoLimitHoldEmGame.objects.get(
+            pk=game_pk
+        )
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=game.table.id,
+        )
+        if not my_table_member:
+            return responses.user_not_in_table()
+        serializer = NoLimitHoldEmGameSerializer(game, context={'request': request})
+        return Response(serializer.data)
+
+class CurrentHoldEmGameRetrieveView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        table_pk = self.kwargs.get('table_pk')
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=table_pk,
+        )
+        if not my_table_member:
+            return responses.user_not_in_table()
+        game = CurrentGame.objects.get(
+            table__pk=table_pk
+        ).no_limit_hold_em_game
+        if not game:
+            return responses.not_found("Game not found.")
+        serializer = NoLimitHoldEmGameSerializer(game, context={'request': request})
+        return Response(serializer.data)
+
+class CurrentHoldEmHandRetrieveView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        game_pk = self.kwargs.get('game_pk')
+        game = NoLimitHoldEmGame.objects.get(
+           pk=game_pk
+        )
+        if not game:
+            return responses.not_found("Game not found.")
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=game.table.id,
+        )
+        if not my_table_member:
+            return responses.user_not_in_table()
+        hand = NoLimitHoldEmHand.objects.filter(
+            game__pk=game.id
+        ).first()
+        if not hand:
+            return Response({'hand': None})
+        serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+        return Response({'hand':serializer.data})
+
 class PlayerRetrieveView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     
