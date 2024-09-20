@@ -8,6 +8,7 @@ from .game_views import CurrentGameRetrieveView
 from . import table_invite_views, user_views, table_views, no_limit_hold_em_views, no_limit_hold_em_action_views
 from .no_limit_hold_em_views import SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView
 from .no_limit_hold_em_adjustment_views import NoLimitHoldChipAdjustmentListView
+from . import consumers
 
 urlpatterns = [
     # user 
@@ -52,9 +53,5 @@ urlpatterns = [
     path('no_limit_hold_em_games/<uuid:game_pk>/chip_adjustments', NoLimitHoldChipAdjustmentListView.as_view(), name='hold_em_chip_adjustments'),
     # game actions
     path('no_limit_hold_em_games/<uuid:game_pk>/deal', no_limit_hold_em_action_views.deal, name='hold_em_deal'),
-    path('no_limit_hold_em_games/<uuid:game_pk>/<action>', no_limit_hold_em_action_views.deal, name='hold_em_deal'),
-    path('no_limit_hold_em_games/<uuid:game_pk>/bet', no_limit_hold_em_action_views.bet, name='hold_em_bet'),
-    path('no_limit_hold_em_games/<uuid:game_pk>/call', no_limit_hold_em_action_views.call, name='hold_em_call'),
-    path('no_limit_hold_em_games/<uuid:game_pk>/check', no_limit_hold_em_action_views.check, name='hold_em_check'),
-    path('no_limit_hold_em_games/<uuid:game_pk>/fold', no_limit_hold_em_action_views.fold, name='hold_em_fold'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/<str:action>', no_limit_hold_em_action_views.make_move, name='hold_em_deal'),
 ]

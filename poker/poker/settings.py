@@ -26,14 +26,17 @@ SECRET_KEY = 'django-insecure-pnk4828728z__c(qihc*kgyja&v=u2czoez&i+#!duc-9m0w01
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    '*', # REMOVE IN PROD
     '127.0.0.1',
     'localhost',
     'localhost.proxyman.io',
 ]
 
 # Application definition
+ASGI_APPLICATION = "poker.asgi.application"
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -54,6 +57,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 ROOT_URLCONF = 'poker.urls'
 

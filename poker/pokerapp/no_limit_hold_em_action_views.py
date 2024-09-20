@@ -14,6 +14,9 @@ from . import table_member_write_helpers
 import json
 import requests
 from django.utils import timezone
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from .utils import UUIDEncoder
 
 def send_request(path, data):
     json_body = json.loads(json.dumps(data))
@@ -23,7 +26,7 @@ def send_request(path, data):
     return response.json()
 
 def is_hand_complete(hand_json):
-    return hand_json['state'].get('handComplete') is not None
+    return hand_json['state'].get('hand_complete') is not None
 
 def valid_current_hand(game_id):
     return NoLimitHoldEmHand.objects.filter(
@@ -33,8 +36,8 @@ def valid_current_hand(game_id):
     ).first()
 
 def is_players_turn(table_member_id, game_id, hand_json):
-    current_player_hand_index = hand_json['state']['waitingForPlayerToAct']['playerIndex']
-    current_player_hand_id = hand_json['playerHands'][current_player_hand_index]['player']['id']
+    current_player_hand_index = hand_json['state']['waiting_for_player_to_act']['player_index']
+    current_player_hand_id = hand_json['player_hands'][current_player_hand_index]['player']['id']
     my_player = NoLimitHoldEmGamePlayer.objects.filter(
         game__pk=game_id
     ).get(
@@ -70,8 +73,8 @@ def deal(request, *args, **kwargs):
         return {
             'id':str(player.id),
             'name':player.username(),
-            'imageURL':player.image_url(),
-            'chipCount':float(player.chip_count),
+            'image_url':player.image_url(),
+            'chip_count':float(player.chip_count),
         }
 
     sitting_players = NoLimitHoldEmGamePlayer.objects.filter(
@@ -135,16 +138,15 @@ def make_move(request, *args, **kwargs):
         request=request, 
         action=action, 
         current_hand=current_hand,
+        my_table_member=my_table_member,
     )
-    current_hand.hand_json = hand_json
-    if is_hand_complete(hand_json):
-        current_hand.completed = timezone.now()
-        # TODO: pay out players
-    current_hand.save()
-    serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
-    return Response(serializer.data)
+    return finish_move(
+        request=request,
+        current_hand=current_hand,
+        hand_json=hand_json,
+    )
 
-def act_on_hand(request, action, current_hand):
+def act_on_hand(request, action, current_hand, my_table_member):
     if action == 'bet':
         class Serializer(serializers.Serializer):
             amount = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -156,7 +158,7 @@ def act_on_hand(request, action, current_hand):
             'hand': current_hand.hand_json,
         }
         return send_request('bet', data)
-    elif action in ('call', 'fold', 'check', 'force'):
+    elif action in ('call', 'fold', 'check'):
         data = {
             'hand': current_hand.hand_json,
         }
@@ -164,133 +166,33 @@ def act_on_hand(request, action, current_hand):
     else:
         return responses.bad_request("Invalid move name.")
 
-@api_view(['POST'])
-def bet(request, *args, **kwargs):
-    """
-    Place a bet on the current hand
-    """
-    class Serializer(serializers.Serializer):
-        amount = serializers.DecimalField(max_digits=10, decimal_places=2)
-    serializer = Serializer(data=request.data, context={'request': request})
-    serializer.is_valid(raise_exception=True)
-    amount = Decimal(serializer.data['amount'])
-
-    game_pk = kwargs.get('game_pk')
-    game = NoLimitHoldEmGame.objects.get(
-        pk=game_pk
-    )
-    my_table_member = table_member_fetchers.get_table_member(
-        user_id=request.user.id, 
-        table_id=game.table.id,
-    )
-    if not my_table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
-    current_hand = valid_current_hand(game_pk)
-    if not current_hand:
-        return responses.bad_request("No hand currently being played.")
-    if not is_players_turn(my_table_member.id, game_pk, current_hand.hand_json):
-        return responses.bad_request("Not the user's turn.")
-    data = {
-        'amount':float(amount),
-        'hand': current_hand.hand_json,
-    }
-    hand_json = send_request('bet', data)
+def finish_move(request, current_hand, hand_json):
     current_hand.hand_json = hand_json
     if is_hand_complete(hand_json):
         current_hand.completed = timezone.now()
-    current_hand.save()
-    serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
-    return Response(serializer.data)
-
-@api_view(['POST'])
-def call(request, *args, **kwargs):
-    """
-    Call the current bet
-    """
-    game_pk = kwargs.get('game_pk')
-    game = NoLimitHoldEmGame.objects.get(
-        pk=game_pk
-    )
-    my_table_member = table_member_fetchers.get_table_member(
-        user_id=request.user.id, 
-        table_id=game.table.id,
-    )
-    if not my_table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
-    current_hand = valid_current_hand(game_pk)
-    if not current_hand:
-        return responses.bad_request("No hand currently being played.")
-    if not is_players_turn(my_table_member.id, game_pk, current_hand.hand_json):
-        return responses.bad_request("Not the user's turn.")
-    data = {
-        'hand': current_hand.hand_json,
+    player_chip_counts = {
+        player['player']['id']: player['player']['chip_count']
+        for player in hand_json['player_hands']
     }
-    hand_json = send_request('call', data)
-    current_hand.hand_json = hand_json
-    if is_hand_complete(hand_json):
-        current_hand.completed = timezone.now()
+    for player in current_hand.players.all():
+        if str(player.id) in player_chip_counts:
+            player.chip_count = player_chip_counts[str(player.id)]
+            player.save()
     current_hand.save()
-    serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
-    return Response(serializer.data)
 
-@api_view(['POST'])
-def check(request, *args, **kwargs):
-    """
-    Check on the current hand
-    """
-    game_pk = kwargs.get('game_pk')
-    game = NoLimitHoldEmGame.objects.get(
-        pk=game_pk
-    )
-    my_table_member = table_member_fetchers.get_table_member(
-        user_id=request.user.id, 
-        table_id=game.table.id,
-    )
-    if not my_table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
-    current_hand = valid_current_hand(game_pk)
-    if not current_hand:
-        return responses.bad_request("No hand currently being played.")
-    if not is_players_turn(my_table_member.id, game_pk, current_hand.hand_json):
-        return responses.bad_request("Not the user's turn.")
-    data = {
-        'hand': current_hand.hand_json,
-    }
-    hand_json = send_request('check', data)
-    current_hand.hand_json = hand_json
-    if is_hand_complete(hand_json):
-        current_hand.completed = timezone.now()
-    current_hand.save()
-    serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
-    return Response(serializer.data)
+    channel_layer = get_channel_layer()
 
-@api_view(['POST'])
-def fold(request, *args, **kwargs):
-    """
-    Fold the current hand
-    """
-    game_pk = kwargs.get('game_pk')
-    game = NoLimitHoldEmGame.objects.get(
-        pk=game_pk
-    )
-    my_table_member = table_member_fetchers.get_table_member(
-        user_id=request.user.id, 
-        table_id=game.table.id,
-    )
-    if not my_table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
-    current_hand = valid_current_hand(game_pk)
-    if not current_hand:
-        return responses.bad_request("No hand currently being played.")
-    if not is_players_turn(my_table_member.id, game_pk, current_hand.hand_json):
-        return responses.bad_request("Not the user's turn.")
-    data = {
-        'hand': current_hand.hand_json,
-    }
-    hand_json = send_request('fold', data)
-    current_hand.hand_json = hand_json
-    if is_hand_complete(hand_json):
-        current_hand.completed = timezone.now()
-    current_hand.save()
     serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
+    data = {
+        "update_type": "handUpdated",
+        "hand": serializer.data,
+    }
+    json_data = json.dumps(data, cls=UUIDEncoder)
+    async_to_sync(channel_layer.group_send)(
+        "no_limit_hold_em_game_" + str(current_hand.game.id),
+        {
+            "type": "chat.message",
+            "message": json_data,
+        }
+    )
     return Response(serializer.data)
