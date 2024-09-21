@@ -47,9 +47,9 @@ urlpatterns = [
     path('no_limit_hold_em_games/<uuid:game_pk>/sit', no_limit_hold_em_views.sit, name='hold_em_sit'),
     path('no_limit_hold_em_games/<uuid:game_pk>/sit_out', no_limit_hold_em_views.sit_out, name='hold_em_sit_out'),
     path('no_limit_hold_em_games/<uuid:game_pk>/sitting_players', SittingPlayersListView.as_view(), name='hold_em_sitting_players'),
-    path('no_limit_hold_em_game_players/<uuid:player_pk>', PlayerRetrieveView.as_view(), name='hold_em_player'),
-    path('no_limit_hold_em_game_players/<uuid:player_pk>/sit_out', no_limit_hold_em_views.sit_player_out, name='hold_em_sit_out_player'),
-    path('no_limit_hold_em_game_players/<uuid:player_pk>/add_chips', no_limit_hold_em_views.add_chips, name='hold_em_add_chips'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/players/<int:user_pk>', PlayerRetrieveView.as_view(), name='hold_em_player'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/players/<int:user_pk>/sit_out', no_limit_hold_em_views.sit_player_out, name='hold_em_sit_out_player'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/players/<int:user_pk>/add_chips', no_limit_hold_em_views.add_chips, name='hold_em_add_chips'),
     path('no_limit_hold_em_games/<uuid:game_pk>/chip_adjustments', NoLimitHoldChipAdjustmentListView.as_view(), name='hold_em_chip_adjustments'),
     # game actions
     path('no_limit_hold_em_games/<uuid:game_pk>/deal', no_limit_hold_em_action_views.deal, name='hold_em_deal'),

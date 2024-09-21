@@ -70,6 +70,14 @@ class NoLimitHoldEmGameAdmin(admin.ModelAdmin):
 
 admin.site.register(NoLimitHoldEmGame, NoLimitHoldEmGameAdmin)
 
+class NoLimitHoldEmGamePlayerAdmin(admin.ModelAdmin):
+    list_display = ('id', 'game', 'user_id')
+
+    def user_id(self, obj):
+        return obj.user_id()
+
+admin.site.register(NoLimitHoldEmGamePlayer, NoLimitHoldEmGamePlayerAdmin)
+
 class NoLimitHoldEmHandAdmin(admin.ModelAdmin):
     list_display = ('id',)
     

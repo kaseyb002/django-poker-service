@@ -76,9 +76,12 @@ class PlayerRetrieveView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, *args, **kwargs):
-        player_pk = self.kwargs.get('player_pk')
-        player = NoLimitHoldEmGamePlayer.objects.get(
-            pk=player_pk
+        game_pk = self.kwargs.get('game_pk')
+        user_pk = self.kwargs.get('user_pk')
+        player = NoLimitHoldEmGamePlayer.objects.filter(
+            game__pk=game_pk        
+        ).get(
+            table_member__user__pk=user_pk
         )
         my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
@@ -209,9 +212,12 @@ def sit_player_out(request, *args, **kwargs):
     """
     Sit another player out of hold em game
     """
-    player_pk = kwargs.get('player_pk')
-    player = NoLimitHoldEmGamePlayer.objects.get(
-        pk=player_pk
+    game_pk = kwargs.get('game_pk')
+    user_pk = kwargs.get('user_pk')
+    player = NoLimitHoldEmGamePlayer.objects.filter(
+        game__pk=game_pk        
+    ).get(
+        table_member__user__pk=user_pk
     )
     my_table_member = table_member_fetchers.get_table_member(
         user_id=request.user.id, 
@@ -234,10 +240,13 @@ def add_chips(request, *args, **kwargs):
     serializer = Serializer(data=request.data, context={'request': request})
     serializer.is_valid(raise_exception=True)
     amount = Decimal(serializer.data['amount'])
-    
-    player_pk = kwargs.get('player_pk')
-    player = NoLimitHoldEmGamePlayer.objects.get(
-        pk=player_pk
+
+    game_pk = kwargs.get('game_pk')
+    user_pk = kwargs.get('user_pk')
+    player = NoLimitHoldEmGamePlayer.objects.filter(
+        game__pk=game_pk        
+    ).get(
+        table_member__user__pk=user_pk
     )
     my_table_member = table_member_fetchers.get_table_member(
         user_id=request.user.id, 

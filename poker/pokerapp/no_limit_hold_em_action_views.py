@@ -35,15 +35,10 @@ def valid_current_hand(game_id):
         completed__isnull=True
     ).first()
 
-def is_players_turn(table_member_id, game_id, hand_json):
+def is_players_turn(user_id, hand_json):
     current_player_hand_index = hand_json['state']['waiting_for_player_to_act']['player_index']
     current_player_hand_id = hand_json['player_hands'][current_player_hand_index]['player']['id']
-    my_player = NoLimitHoldEmGamePlayer.objects.filter(
-        game__pk=game_id
-    ).get(
-        table_member__pk=table_member_id
-    )
-    return str(my_player.id) == current_player_hand_id
+    return str(user_id) == current_player_hand_id
 
 @api_view(['POST'])
 def deal(request, *args, **kwargs):
@@ -71,7 +66,7 @@ def deal(request, *args, **kwargs):
 
     def make_player_json(player):
         return {
-            'id':str(player.id),
+            'id':str(player.user_id()),
             'name':player.username(),
             'image_url':player.image_url(),
             'chip_count':float(player.chip_count),
@@ -131,7 +126,7 @@ def make_move(request, *args, **kwargs):
     current_hand = valid_current_hand(game_pk)
     if not current_hand:
         return responses.bad_request("No hand currently being played.")
-    if not is_players_turn(my_table_member.id, game_pk, current_hand.hand_json):
+    if not is_players_turn(request.user.id, current_hand.hand_json):
         return responses.bad_request("Not the user's turn.")
     action = kwargs.get('action')
     hand_json = act_on_hand(
@@ -175,8 +170,8 @@ def finish_move(request, current_hand, hand_json):
         for player in hand_json['player_hands']
     }
     for player in current_hand.players.all():
-        if str(player.id) in player_chip_counts:
-            player.chip_count = player_chip_counts[str(player.id)]
+        if str(player.user_id()) in player_chip_counts:
+            player.chip_count = player_chip_counts[str(player.user_id())]
             player.save()
     current_hand.save()
 
