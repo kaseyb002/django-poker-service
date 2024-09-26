@@ -15,9 +15,9 @@ class TableSettingsRetrieveView(generics.RetrieveUpdateAPIView):
     
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get('table_pk')
-        table_settings = TableSettings.objects.filter(
-            table__members__user__id=request.user.id
-        ).get(
+        table_settings = TableSettings.objects.get(
+            table__members__user__id=request.user.id,
+            table__members__is_deleted=False,
             table__pk=pk
         )
         serializer = TableSettingsSerializer(table_settings, context={'request': request})

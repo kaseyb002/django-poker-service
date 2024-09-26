@@ -1,5 +1,3 @@
-from django.shortcuts import render
-from django.contrib.auth.models import User
 from .models import *
 from .serializers import *
 from .pagination import NumberOnlyPagination
@@ -8,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAuthenticated
-from . import table_member_fetchers 
+from . import table_member_fetchers, table_member_write_helpers
 from . import responses
 
 class MyTableMemberRetrieveView(generics.RetrieveAPIView):
@@ -54,7 +52,7 @@ class TableMemberRetrieveView(generics.RetrieveDestroyAPIView):
             table_id=table_pk,
         ):
             return responses.no_admins_remaining()
-        table_member.delete()
+        table_member_write_helpers.remove_table_member(table_member)
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class TableMemberListView(generics.ListAPIView):
@@ -71,6 +69,8 @@ class TableMemberListView(generics.ListAPIView):
             return responses.user_not_in_table()
         table_members = TableMember.objects.filter(
             table__id=table_pk
+        ).exclude(
+            is_deleted=True
         ).prefetch_related('permissions', 'user', 'user__account')
 
         # Apply pagination
@@ -81,24 +81,4 @@ class TableMemberListView(generics.ListAPIView):
 
         # If no pagination is applied, return all data
         serializer = TableMemberSerializer(tables, many=True, context={'request': request})
-        return Response(serializer.data)
-
-class SittingTableMemberListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
-
-    def list(self, request, *args, **kwargs):
-        table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
-            user_id=request.user.id, 
-            table_id=table_pk,
-        )
-        if not my_table_member:
-            return responses.user_not_in_table()
-        sitting_table_members = TableMember.objects.filter(
-            table__id=table_pk
-        ).filter(
-            is_sitting=True
-        ).prefetch_related('permissions', 'user', 'user__account')
-
-        serializer = TableMemberSerializer(sitting_table_members, many=True, context={'request': request})
         return Response(serializer.data)

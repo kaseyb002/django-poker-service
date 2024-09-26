@@ -125,6 +125,7 @@ class TableMemberSerializer(serializers.ModelSerializer):
             'user',
             'username',
             'image_url',
+            'is_deleted',
             'permissions',
         ]
 

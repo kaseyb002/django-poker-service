@@ -14,9 +14,6 @@ from . import table_member_write_helpers
 import json
 import requests
 from django.utils import timezone
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
-from .utils import UUIDEncoder
 
 def send_request(path, data):
     json_body = json.loads(json.dumps(data))
@@ -30,8 +27,7 @@ def is_hand_complete(hand_json):
 
 def valid_current_hand(game_id):
     return NoLimitHoldEmHand.objects.filter(
-        game__pk=game_id
-    ).filter(
+        game__pk=game_id,
         completed__isnull=True
     ).first()
 
@@ -56,8 +52,7 @@ def deal(request, *args, **kwargs):
     if not my_table_member.permissions.can_deal:
         return responses.unauthorized("User is not permitted to deal.")
     current_hand = NoLimitHoldEmHand.objects.filter(
-        game__pk=game_pk
-    ).filter(
+        game__pk=game_pk,
         completed__isnull=True
     ).first()
     if current_hand:
@@ -73,23 +68,17 @@ def deal(request, *args, **kwargs):
         }
 
     sitting_players = NoLimitHoldEmGamePlayer.objects.filter(
-        game__id=game_pk
-    ).filter(
+        game__id=game_pk,
         is_sitting=True
     )   
     for sitting_player in sitting_players:
         if sitting_player.chip_count < game.big_blind:
             sitting_player.is_sitting=False
             sitting_player.save()
-    sitting_players = NoLimitHoldEmGamePlayer.objects.filter(
-        game__id=game_pk
-    ).filter(
-        is_sitting=True
-    ).prefetch_related(
-        'table_member', 
-        'table_member__user', 
-        'table_member__user__account',
-    )
+    if sitting_players.count() < 2:
+        return responses.bad_request("No enough players to play.")
+    sitting_players = players_for_next_hand(game_id=game_pk)
+    print([player.username() for player in sitting_players])
     sitting_players_json = []
     for sitting_player in sitting_players:
         sitting_players_json.append(make_player_json(sitting_player))
@@ -98,6 +87,7 @@ def deal(request, *args, **kwargs):
         'bigBlind':float(game.big_blind),
         'players': sitting_players_json,
     }
+    print(sitting_players_json)
     hand_json = send_request('deal', data)
     hand = NoLimitHoldEmHand(
         game=game,
@@ -110,6 +100,45 @@ def deal(request, *args, **kwargs):
     hand.save()
     serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
     return Response(serializer.data)
+
+def players_for_next_hand(game_id):
+    sitting_players = NoLimitHoldEmGamePlayer.objects.filter(
+        game__id=game_id,
+        is_sitting=True
+    ).prefetch_related(
+        'table_member', 
+        'table_member__user', 
+        'table_member__user__account',
+    )
+    previous_hand = NoLimitHoldEmHand.objects.filter(
+        game__pk=game_id,
+        completed__isnull=False
+    ).order_by(
+        '-updated',
+    ).first()
+    sitting_player_dict = {str(player.table_member.user.id): player for player in sitting_players}
+    print(sitting_player_dict)
+    if previous_hand:
+        # first i need to make a new list of sitting_players that is the same order as the previous list
+        rotated_players = []
+        new_players = []
+        for player_hand in previous_hand.hand_json['player_hands']:
+            player_id = player_hand['player']['id']
+            print(player_id)
+            if player_id in sitting_player_dict:
+                print('found ' + player_id)
+                rotated_players.append(sitting_player_dict[player_id])
+        rotated_player_ids_set = {str(player.id) for player in rotated_players}
+        for player in sitting_players:
+            if str(player.id) not in rotated_player_ids_set:
+                rotated_players.append(player)
+        previous_small_blind_player = rotated_players.pop(0)
+        print(previous_small_blind_player.username())
+        rotated_players.append(previous_small_blind_player)
+        print([player.username() for player in rotated_players])
+        return rotated_players
+    else:
+        return sitting_players
 
 @api_view(['POST'])
 def make_move(request, *args, **kwargs):
@@ -141,6 +170,33 @@ def make_move(request, *args, **kwargs):
         hand_json=hand_json,
     )
 
+@api_view(['POST'])
+def force_move(request, *args, **kwargs):
+    game_pk = kwargs.get('game_pk')
+    game = NoLimitHoldEmGame.objects.get(
+        pk=game_pk
+    )
+    my_table_member = table_member_fetchers.get_table_member(
+        user_id=request.user.id, 
+        table_id=game.table.id,
+    )
+    if not my_table_member.permissions.can_force_move:
+        return responses.unauthorized("User is not permitted force a move.")
+    current_hand = valid_current_hand(game_pk)
+    if not current_hand:
+        return responses.bad_request("No hand currently being played.")
+    hand_json = act_on_hand(
+        request=request, 
+        action='force', 
+        current_hand=current_hand,
+        my_table_member=my_table_member,
+    )
+    return finish_move(
+        request=request,
+        current_hand=current_hand,
+        hand_json=hand_json,
+    )
+
 def act_on_hand(request, action, current_hand, my_table_member):
     if action == 'bet':
         class Serializer(serializers.Serializer):
@@ -153,7 +209,7 @@ def act_on_hand(request, action, current_hand, my_table_member):
             'hand': current_hand.hand_json,
         }
         return send_request('bet', data)
-    elif action in ('call', 'fold', 'check'):
+    elif action in ('call', 'fold', 'check', 'force'):
         data = {
             'hand': current_hand.hand_json,
         }
@@ -174,20 +230,5 @@ def finish_move(request, current_hand, hand_json):
             player.chip_count = player_chip_counts[str(player.user_id())]
             player.save()
     current_hand.save()
-
-    channel_layer = get_channel_layer()
-
     serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
-    data = {
-        "update_type": "handUpdated",
-        "hand": serializer.data,
-    }
-    json_data = json.dumps(data, cls=UUIDEncoder)
-    async_to_sync(channel_layer.group_send)(
-        "no_limit_hold_em_game_" + str(current_hand.game.id),
-        {
-            "type": "chat.message",
-            "message": json_data,
-        }
-    )
     return Response(serializer.data)

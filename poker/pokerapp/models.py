@@ -56,6 +56,7 @@ class TableInvite(models.Model):
 class TableMember(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.BooleanField(default=False)
     user = models.ForeignKey('auth.User', related_name='memberships', on_delete=models.CASCADE)
     table = models.ForeignKey(Table, related_name='members', on_delete=models.CASCADE)
     permissions = models.OneToOneField(TablePermissions, null=True, on_delete=models.SET_NULL)

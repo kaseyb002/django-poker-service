@@ -3,6 +3,26 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .utils import UUIDEncoder
 
+class TableConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.table_id = self.scope["url_route"]["kwargs"]["table_pk"]
+        self.table_group_name = f"table_{self.table_id}"
+
+        await self.channel_layer.group_add(
+            self.table_group_name, self.channel_name
+        )
+
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            self.table_group_name, self.channel_name
+        )
+
+    async def table_message(self, event):
+        data = event["message"]
+        await self.send(text_data=data)
+
 class NoLimitHoldEmGameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.game_id = self.scope["url_route"]["kwargs"]["game_pk"]
@@ -19,6 +39,6 @@ class NoLimitHoldEmGameConsumer(AsyncWebsocketConsumer):
             self.game_group_name, self.channel_name
         )
 
-    async def chat_message(self, event):
+    async def game_message(self, event):
         data = event["message"]
         await self.send(text_data=data)

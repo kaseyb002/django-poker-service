@@ -18,9 +18,9 @@ class TableRetrieveView(generics.RetrieveAPIView):
     
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get('pk')
-        table = Table.objects.filter(
-            members__user__id=request.user.id
-        ).get(
+        table = Table.objects.get(
+            members__user__id=request.user.id,
+            members__is_deleted=False,
             pk=pk
         )
         serializer = TableSerializer(table, context={'request': request})
@@ -33,7 +33,10 @@ class TableListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        tables = Table.objects.filter(members__user__id=request.user.id)
+        tables = Table.objects.filter(
+            members__user__id=request.user.id,
+            members__is_deleted=False
+        )
 
         # Apply pagination
         page = self.paginate_queryset(tables)
@@ -53,7 +56,10 @@ class TableListView(generics.ListCreateAPIView):
         name = serializer.data['name']
         
         # create table
-        table = Table(name=name)
+        table = Table(
+            name=name,
+            created_by=request.user,
+        )
         table.save()
 
         # create settings
@@ -97,7 +103,3 @@ class TableListView(generics.ListCreateAPIView):
 
         serializer = TableSerializer(table, context={'request': request})
         return Response(serializer.data)
-
-class TableSettingsView(generics.RetrieveAPIView):
-    queryset = TableSettings.objects.all()
-    serializer_class = TableSettingsSerializer
