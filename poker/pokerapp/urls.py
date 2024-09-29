@@ -18,6 +18,7 @@ urlpatterns = [
     path('account/my_user', user_views.my_user),
     path('account/my_user/username', user_views.update_username),
     path('account/my_user/username/validate', user_views.username_is_valid),
+    path('account/my_user/profile_image', user_views.update_profile_image),
     
     # tables
     path('tables', TableListView.as_view(), name='table-list'),

@@ -76,7 +76,7 @@ def deal(request, *args, **kwargs):
             sitting_player.is_sitting=False
             sitting_player.save()
     if sitting_players.count() < 2:
-        return responses.bad_request("No enough players to play.")
+        return responses.bad_request("Not enough players to play.")
     sitting_players = players_for_next_hand(game_id=game_pk)
     print([player.username() for player in sitting_players])
     sitting_players_json = []

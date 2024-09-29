@@ -10,8 +10,10 @@ from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from . import table_member_write_helpers
+from . import table_member_fetchers
+from . import responses
 
-class TableRetrieveView(generics.RetrieveAPIView):
+class TableRetrieveView(generics.RetrieveUpdateAPIView):
     queryset = Table.objects.all()
     serializer_class = TableSerializer
     permission_classes = [IsAuthenticated]
@@ -24,6 +26,27 @@ class TableRetrieveView(generics.RetrieveAPIView):
             pk=pk
         )
         serializer = TableSerializer(table, context={'request': request})
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        table_pk = self.kwargs.get('pk')
+        table = Table.objects.get(
+            pk=table_pk
+        )
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=table.id,
+        )
+        if not my_table_member.permissions.can_edit_settings:
+            return responses.unauthorized("User cannot edit settings")
+        serializer = TableSerializer(
+            table, 
+            data=request.data,
+            partial=True,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data)
 
 class TableListView(generics.ListCreateAPIView):

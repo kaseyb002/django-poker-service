@@ -119,3 +119,19 @@ def update_username(request):
 
     serializer = UserSerializer(request.user, context={'request': request})
     return Response(serializer.data)
+
+@api_view(['PUT'])
+@permission_classes((IsAuthenticated, ))
+def update_profile_image(request):
+    """
+    Updates user's profile image
+    """
+    class UpdateProfileImageSerializer(serializers.Serializer):
+        image_url = serializers.URLField(max_length=250, min_length=None, allow_blank=False)
+    serializer = UpdateProfileImageSerializer(data=request.data, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+    new_profile_image = serializer.data['image_url']
+    request.user.account.image_url = new_profile_image
+    request.user.account.save()
+    serializer = UserSerializer(request.user, context={'request': request})
+    return Response(serializer.data)
