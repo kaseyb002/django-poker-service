@@ -50,8 +50,6 @@ class TableRetrieveView(generics.RetrieveUpdateAPIView):
         return Response(serializer.data)
 
 class TableListView(generics.ListCreateAPIView):
-    queryset = Table.objects.all()
-    serializer_class = TableSerializer
     pagination_class = NumberOnlyPagination
     permission_classes = [IsAuthenticated]
 
@@ -123,6 +121,15 @@ class TableListView(generics.ListCreateAPIView):
             no_limit_hold_em_game=hold_em_game,
         )
         current_game.save()
+
+        # make chat room
+        chat_room = ChatRoom()
+        chat_room.save()
+        table_chat_room = TableChatRoom(
+            room=room,
+            table=table,
+        )
+        table_chat_room.save()
 
         serializer = TableSerializer(table, context={'request': request})
         return Response(serializer.data)

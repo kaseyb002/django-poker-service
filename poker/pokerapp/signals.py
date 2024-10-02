@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import NoLimitHoldEmGamePlayer, NoLimitHoldEmHand, NoLimitHoldEmGame, Table, TableMember, TableSettings
-from .serializers import NoLimitHoldEmGamePlayerSerializer, NoLimitHoldEmHandSerializer, NoLimitHoldEmGameSerializer, TableSerializer, TableMemberSerializer, TableSettingsSerializer
+from .models import NoLimitHoldEmGamePlayer, NoLimitHoldEmHand, NoLimitHoldEmGame, Table, TableMember, TableSettings, ChatMessage
+from .serializers import NoLimitHoldEmGamePlayerSerializer, NoLimitHoldEmHandSerializer, NoLimitHoldEmGameSerializer, TableSerializer, TableMemberSerializer, TableSettingsSerializer, ChatMessageSerializer
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .utils import UUIDEncoder
@@ -87,6 +87,30 @@ def send_no_limit_hold_em_game_message(game_id, data):
         "no_limit_hold_em_game_" + str(game_id),
         {
             "type": "game.message",
+            "message": json_data,
+        }
+    )
+
+"""
+Chat message
+"""
+@receiver(post_save, sender=ChatMessage)
+def notify_chat_message_saved(sender, instance, created, **kwargs):
+    channel_layer = get_channel_layer()
+    serializer = ChatMessageSerializer(instance)
+    data = {
+        "update_type": "message",
+        "chat_message": serializer.data,
+    }
+    send_chat_message(instance.room.id, data)
+
+def send_chat_message(room_id, data):
+    json_data = json.dumps(data, cls=UUIDEncoder)
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "room_" + str(room_id),
+        {
+            "type": "chat.message",
             "message": json_data,
         }
     )

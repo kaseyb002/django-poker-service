@@ -95,6 +95,7 @@ class NoLimitHoldEmGamePlayer(models.Model):
     table_member = models.ForeignKey(TableMember, related_name='no_limit_hold_em_game_players', on_delete=models.CASCADE)
     chip_count = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
     is_sitting = models.BooleanField(default=False)
+    is_auto_move_on = models.BooleanField(default=False)
 
     def user_id(self):
         return self.table_member.user.id
@@ -158,3 +159,37 @@ class CurrentGame(models.Model):
         on_delete=models.SET_NULL,
         null=True,
     )
+
+class ChatRoom(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+
+class TableChatRoom(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    room = models.OneToOneField(
+        ChatRoom,
+        on_delete=models.CASCADE,
+    )
+    table = models.OneToOneField(
+        Table,
+        on_delete=models.CASCADE,
+    )
+
+class ChatMessage(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    text = models.CharField(max_length=1024, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False)
+    room = models.ForeignKey(ChatRoom, related_name='messages', on_delete=models.CASCADE)
+    user = models.ForeignKey('auth.User', related_name='chat_messages', on_delete=models.CASCADE)
+
+    def username(self):
+        return self.user.username
+
+    def image_url(self):
+        return self.user.account.image_url
+
+    class Meta:
+        ordering = ['-created']

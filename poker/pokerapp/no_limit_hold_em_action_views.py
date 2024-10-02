@@ -14,6 +14,7 @@ from . import table_member_write_helpers
 import json
 import requests
 from django.utils import timezone
+from django.db import transaction
 
 def send_request(path, data):
     json_body = json.loads(json.dumps(data))
@@ -31,10 +32,31 @@ def valid_current_hand(game_id):
         completed__isnull=True
     ).first()
 
+def current_player_user_id(hand_json):
+    waiting_for_player = hand_json['state'].get('waiting_for_player_to_act')
+    if not waiting_for_player:
+        return None
+    current_player_hand_index = waiting_for_player['player_index']
+    current_player_user_id = hand_json['player_hands'][current_player_hand_index]['player']['id']
+    return current_player_user_id
+
 def is_players_turn(user_id, hand_json):
-    current_player_hand_index = hand_json['state']['waiting_for_player_to_act']['player_index']
-    current_player_hand_id = hand_json['player_hands'][current_player_hand_index]['player']['id']
-    return str(user_id) == current_player_hand_id
+    current_player_id = current_player_user_id(hand_json)
+    if not current_player_id:
+        return False
+    return str(user_id) == current_player_id
+
+def is_player_waiting_to_move(user_id, hand_json):
+    if is_hand_complete(hand_json):
+        return False
+    if is_players_turn(user_id, hand_json):
+        return False
+    player_hands = hand_json['player_hands']
+    for player_hand in player_hands:
+        if player_hand['player']['id'] == str(user_id):
+            if player_hand['status'] == 'in':
+                return True
+    return False
 
 @api_view(['POST'])
 def deal(request, *args, **kwargs):
@@ -51,6 +73,7 @@ def deal(request, *args, **kwargs):
     )
     if not my_table_member.permissions.can_deal:
         return responses.unauthorized("User is not permitted to deal.")
+    turn_off_auto_move_for_all_players(game_id=game.id)
     current_hand = NoLimitHoldEmHand.objects.filter(
         game__pk=game_pk,
         completed__isnull=True
@@ -78,7 +101,6 @@ def deal(request, *args, **kwargs):
     if sitting_players.count() < 2:
         return responses.bad_request("Not enough players to play.")
     sitting_players = players_for_next_hand(game_id=game_pk)
-    print([player.username() for player in sitting_players])
     sitting_players_json = []
     for sitting_player in sitting_players:
         sitting_players_json.append(make_player_json(sitting_player))
@@ -87,7 +109,6 @@ def deal(request, *args, **kwargs):
         'bigBlind':float(game.big_blind),
         'players': sitting_players_json,
     }
-    print(sitting_players_json)
     hand_json = send_request('deal', data)
     hand = NoLimitHoldEmHand(
         game=game,
@@ -117,25 +138,20 @@ def players_for_next_hand(game_id):
         '-updated',
     ).first()
     sitting_player_dict = {str(player.table_member.user.id): player for player in sitting_players}
-    print(sitting_player_dict)
     if previous_hand:
         # first i need to make a new list of sitting_players that is the same order as the previous list
         rotated_players = []
         new_players = []
         for player_hand in previous_hand.hand_json['player_hands']:
             player_id = player_hand['player']['id']
-            print(player_id)
             if player_id in sitting_player_dict:
-                print('found ' + player_id)
                 rotated_players.append(sitting_player_dict[player_id])
         rotated_player_ids_set = {str(player.id) for player in rotated_players}
         for player in sitting_players:
             if str(player.id) not in rotated_player_ids_set:
                 rotated_players.append(player)
         previous_small_blind_player = rotated_players.pop(0)
-        print(previous_small_blind_player.username())
         rotated_players.append(previous_small_blind_player)
-        print([player.username() for player in rotated_players])
         return rotated_players
     else:
         return sitting_players
@@ -162,13 +178,14 @@ def make_move(request, *args, **kwargs):
         request=request, 
         action=action, 
         current_hand=current_hand,
-        my_table_member=my_table_member,
     )
-    return finish_move(
+    current_hand = finish_move(
         request=request,
         current_hand=current_hand,
         hand_json=hand_json,
     )
+    serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
+    return Response(serializer.data)
 
 @api_view(['POST'])
 def force_move(request, *args, **kwargs):
@@ -189,15 +206,47 @@ def force_move(request, *args, **kwargs):
         request=request, 
         action='force', 
         current_hand=current_hand,
-        my_table_member=my_table_member,
     )
-    return finish_move(
-        request=request,
+    current_hand = finish_move(
         current_hand=current_hand,
         hand_json=hand_json,
     )
+    serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
+    return Response(serializer.data)
 
-def act_on_hand(request, action, current_hand, my_table_member):
+@api_view(['POST'])
+def toggle_auto_move(request, *args, **kwargs):
+    class Serializer(serializers.Serializer):
+        is_auto_move_on = serializers.BooleanField()
+    serializer = Serializer(data=request.data, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+    is_auto_move_on = serializer.data['is_auto_move_on']
+    game_pk = kwargs.get('game_pk')
+    game = NoLimitHoldEmGame.objects.get(
+        pk=game_pk
+    )
+    my_table_member = table_member_fetchers.get_table_member(
+        user_id=request.user.id, 
+        table_id=game.table.id,
+    )
+    if not my_table_member.permissions.can_play:
+        return responses.unauthorized("User is not permitted to play.")
+    current_hand = valid_current_hand(game_pk)
+    if not current_hand:
+        return responses.bad_request("No hand currently being played.")
+    if not is_player_waiting_to_move(request.user.id, current_hand.hand_json):
+        return responses.bad_request("User is not waiting to play.")
+    player = NoLimitHoldEmGamePlayer.objects.filter(
+        game__pk=game_pk
+    ).get(
+        table_member__user__id=request.user.id
+    )
+    player.is_auto_move_on = is_auto_move_on
+    player.save()
+    serializer = NoLimitHoldEmGamePlayerSerializer(player, context={'request': request})
+    return Response(serializer.data)
+
+def act_on_hand(request, action, current_hand):
     if action == 'bet':
         class Serializer(serializers.Serializer):
             amount = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -230,5 +279,40 @@ def finish_move(request, current_hand, hand_json):
             player.chip_count = player_chip_counts[str(player.user_id())]
             player.save()
     current_hand.save()
-    serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
-    return Response(serializer.data)
+    current_hand = auto_move_if_needed(
+        request=request,
+        current_hand=current_hand,
+    )
+    return current_hand
+
+def auto_move_if_needed(request, current_hand):
+    user_id = current_player_user_id(current_hand.hand_json)
+    if not user_id:
+        return current_hand
+    player = NoLimitHoldEmGamePlayer.objects.filter(
+        game__pk=current_hand.game.id
+    ).get(
+        table_member__user__id=user_id
+    )
+    if player.is_auto_move_on:
+        hand_json = act_on_hand(
+            request=request, 
+            action='force', 
+            current_hand=current_hand,
+        )
+        current_hand = finish_move(
+            request=request,
+            current_hand=current_hand,
+            hand_json=hand_json,
+        )
+    return current_hand
+
+@transaction.atomic
+def turn_off_auto_move_for_all_players(game_id):
+    players = NoLimitHoldEmGamePlayer.objects.filter(
+        game__pk=game_id
+    )
+    for player in players:
+        player.is_auto_move_on = False
+        player.save()
+

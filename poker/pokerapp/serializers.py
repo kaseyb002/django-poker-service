@@ -33,6 +33,12 @@ class CreateUserSerializer(serializers.ModelSerializer):
         user.account = Account.objects.create(user=user)
         return user
 
+    # Validate email uniqueness
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("This email address is already in use.")
+        return value
+
 class UserSerializer(serializers.ModelSerializer):
     account = AccountSerializer(required=False)
 
@@ -64,6 +70,12 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+
+    # Validate email uniqueness
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("This email address is already in use.")
+        return value
 
 class TableSerializer(serializers.ModelSerializer):
     class Meta:
@@ -155,6 +167,7 @@ class NoLimitHoldEmGamePlayerSerializer(serializers.ModelSerializer):
             'image_url',
             'chip_count',
             'is_sitting',
+            'is_auto_move_on',
         ]
 
 class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
@@ -191,4 +204,18 @@ class CurrentGameSerializer(serializers.ModelSerializer):
             'table',
             'selected_game',
             'no_limit_hold_em_game',
+        ]
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatMessage
+        fields = [
+            'id', 
+            'created',
+            'updated',
+            'room', 
+            'user', 
+            'text',
+            'username',
+            'image_url',
         ]

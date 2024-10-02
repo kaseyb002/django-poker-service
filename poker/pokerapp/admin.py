@@ -82,3 +82,18 @@ class NoLimitHoldEmHandAdmin(admin.ModelAdmin):
     list_display = ('id',)
     
 admin.site.register(NoLimitHoldEmHand, NoLimitHoldEmHandAdmin)
+
+class ChatRoomAdmin(admin.ModelAdmin):
+    list_display = ('id',)
+
+admin.site.register(ChatRoom, ChatRoomAdmin)
+
+class TableChatRoomAdmin(admin.ModelAdmin):
+    list_display = ('id',)
+
+admin.site.register(TableChatRoom, TableChatRoomAdmin)
+
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ('id','text')
+
+admin.site.register(ChatMessage, ChatMessageAdmin)

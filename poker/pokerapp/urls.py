@@ -3,10 +3,11 @@ from .table_views import TableListView, TableRetrieveView
 from .table_settings_views import TableSettingsRetrieveView
 from .table_member_views import MyTableMemberRetrieveView, TableMemberRetrieveView, TableMemberListView
 from .table_invite_views import TableInviteListView
+from .table_chat_views import TableChatMessageListView, TableChatMetadataRetrieveView
 from .table_member_permissions import TableMemberPermissionsUpdateView
 from .game_views import CurrentGameRetrieveView
 from . import table_invite_views, user_views, table_views, no_limit_hold_em_views, no_limit_hold_em_action_views
-from .no_limit_hold_em_views import PlayerListView, SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView
+from .no_limit_hold_em_views import PlayerListView, SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView, NoLimitHoldEmHandListView, NoLimitHoldEmHandRetrieveView
 from .no_limit_hold_em_adjustment_views import NoLimitHoldChipAdjustmentListView
 from . import consumers
 
@@ -41,6 +42,10 @@ urlpatterns = [
     path('tables/<uuid:table_pk>/leave', table_invite_views.leave_table),
     path('tables/<uuid:table_pk>/invites', TableInviteListView.as_view(), name='table-invites'),
 
+    # chat
+    path('tables/<uuid:table_pk>/chat', TableChatMessageListView.as_view(), name='table-chat'),
+    path('tables/<uuid:table_pk>/chat/metadata', TableChatMetadataRetrieveView.as_view(), name='table-chat-metadata'),
+
     # no limit hold em
     path('no_limit_hold_em_games/<uuid:game_pk>', HoldEmGameRetrieveView.as_view(), name='hold_em_game'),
     path('no_limit_hold_em_games/<uuid:game_pk>/current_hand', CurrentHoldEmHandRetrieveView.as_view(), name='current_hold_em_game'),
@@ -52,8 +57,11 @@ urlpatterns = [
     path('no_limit_hold_em_games/<uuid:game_pk>/players/<int:user_pk>/sit_out', no_limit_hold_em_views.sit_player_out, name='hold_em_sit_out_player'),
     path('no_limit_hold_em_games/<uuid:game_pk>/players/<int:user_pk>/add_chips', no_limit_hold_em_views.add_chips, name='hold_em_add_chips'),
     path('no_limit_hold_em_games/<uuid:game_pk>/chip_adjustments', NoLimitHoldChipAdjustmentListView.as_view(), name='hold_em_chip_adjustments'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/hands', NoLimitHoldEmHandListView.as_view(), name='hold_em_hand_list'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/hands/<uuid:hand_pk>', NoLimitHoldEmHandRetrieveView.as_view(), name='hold_em_hand'),
     # game actions
     path('no_limit_hold_em_games/<uuid:game_pk>/deal', no_limit_hold_em_action_views.deal, name='hold_em_deal'),
     path('no_limit_hold_em_games/<uuid:game_pk>/force', no_limit_hold_em_action_views.force_move, name='hold_em_force_move'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/toggle_auto_move', no_limit_hold_em_action_views.toggle_auto_move, name='hold_em_toggle_auto_move'),
     path('no_limit_hold_em_games/<uuid:game_pk>/<str:action>', no_limit_hold_em_action_views.make_move, name='hold_em_make_move'),
 ]

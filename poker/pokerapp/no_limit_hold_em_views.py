@@ -175,6 +175,56 @@ class SittingPlayersListView(generics.ListAPIView):
         serializer = NoLimitHoldEmGamePlayerSerializer(sitting_players, many=True, context={'request': request})
         return Response(serializer.data)
 
+class NoLimitHoldEmHandRetrieveView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        game_pk = self.kwargs.get('game_pk')
+        hand_pk = self.kwargs.get('hand_pk')
+
+        game = NoLimitHoldEmGame.objects.get(
+            pk=game_pk
+        )
+        hand = NoLimitHoldEmHand.objects.get(
+            pk=hand_pk
+        )
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=game.table.id,
+        )
+        if not my_table_member:
+            return responses.user_not_in_table()
+        serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+        return Response(serializer.data)
+
+class NoLimitHoldEmHandListView(generics.ListAPIView):
+    pagination_class = NumberOnlyPagination
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        game_pk = self.kwargs.get('game_pk')
+        game = NoLimitHoldEmGame.objects.get(
+            pk=game_pk
+        )
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=game.table.id,
+        )
+        if not my_table_member:
+            return responses.user_not_in_table()
+        hands = NoLimitHoldEmHand.objects.filter(
+            game__id=game_pk,
+        )
+
+        # Apply pagination
+        page = self.paginate_queryset(hands)
+        if page is not None:
+            serializer = NoLimitHoldEmHandSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
+        serializer = NoLimitHoldEmHandSerializer(hands, many=True, context={'request': request})
+        return Response(serializer.data)
+
 @api_view(['POST'])
 def sit(request, *args, **kwargs):
     """
