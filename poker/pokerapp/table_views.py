@@ -1,36 +1,34 @@
 from django.shortcuts import render
-from django.contrib.auth.models import User
 from .models import *
 from .serializers import *
 from .pagination import NumberOnlyPagination
-from pokerapp import models
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import generics, viewsets, status
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.pagination import PageNumberPagination
 from . import table_member_write_helpers
 from . import table_member_fetchers
 from . import responses
+from django.shortcuts import get_object_or_404
 
 class TableRetrieveView(generics.RetrieveUpdateAPIView):
-    queryset = Table.objects.all()
-    serializer_class = TableSerializer
     permission_classes = [IsAuthenticated]
     
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get('pk')
-        table = Table.objects.get(
+        table = get_object_or_404(
+            Table,
             members__user__id=request.user.id,
             members__is_deleted=False,
-            pk=pk
+            pk=pk,
         )
         serializer = TableSerializer(table, context={'request': request})
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('pk')
-        table = Table.objects.get(
+        table = get_object_or_404(
+            Table,
             pk=table_pk
         )
         my_table_member = table_member_fetchers.get_table_member(
@@ -58,37 +56,27 @@ class TableListView(generics.ListCreateAPIView):
             members__user__id=request.user.id,
             members__is_deleted=False
         )
-
-        # Apply pagination
         page = self.paginate_queryset(tables)
-        if page is not None:
-            serializer = TableSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
-
-        # If no pagination is applied, return all data
-        serializer = TableSerializer(tables, many=True, context={'request': request})
-        return Response(serializer.data)
+        serializer = TableSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         class Serializer(serializers.Serializer):
-            name = serializers.CharField()
+            name = serializers.CharField(max_length=25)
         serializer = Serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         name = serializer.data['name']
         
-        # create table
-        table = Table(
+        table = Table.objects.create(
             name=name,
             created_by=request.user,
         )
-        table.save()
 
-        # create settings
-        table_settings = TableSettings(table=table)
-        table_settings.save()
+        table_settings = TableSettings.objects.create(
+            table=table
+        )
 
-        # set permissions
-        admin_permissions = TablePermissions(
+        admin_permissions = TablePermissions.objects.create(
             can_edit_permissions = True,
             can_edit_settings = True,
             can_send_invite = True,
@@ -100,36 +88,27 @@ class TableListView(generics.ListCreateAPIView):
             can_adjust_chips=True,
             can_deal=True,
         )
-        admin_permissions.save()
 
-        # join table
         table_member = table_member_write_helpers.join_table(
             user=request.user, 
             table_id=table.id,
             permissions=admin_permissions,
         )
 
-        # setup default hold em game
-        hold_em_game = NoLimitHoldEmGame(
+        hold_em_game = NoLimitHoldEmGame.objects.create(
             table=table
         )
-        hold_em_game.save()
 
-        # create current game
-        current_game = CurrentGame(
+        current_game = CurrentGame.objects.create(
             table=table,
             no_limit_hold_em_game=hold_em_game,
         )
-        current_game.save()
 
-        # make chat room
-        chat_room = ChatRoom()
-        chat_room.save()
-        table_chat_room = TableChatRoom(
-            room=room,
+        chat_room = ChatRoom.objects.create()
+        table_chat_room = TableChatRoom.objects.create(
+            room=chat_room,
             table=table,
         )
-        table_chat_room.save()
 
         serializer = TableSerializer(table, context={'request': request})
         return Response(serializer.data)

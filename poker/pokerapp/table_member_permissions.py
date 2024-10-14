@@ -10,6 +10,8 @@ from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from . import table_member_fetchers 
 from . import responses
+from django.shortcuts import get_object_or_404
+from django.http import Http404
 
 class TableMemberPermissionsUpdateView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
@@ -38,12 +40,15 @@ class TableMemberPermissionsUpdateView(generics.UpdateAPIView):
             context={'request': request},
         )
         permissions_serializer.is_valid(raise_exception=True)
-        if not permissions_serializer.validated_data['can_edit_permissions']:
-            if not table_member_fetchers.get_table_has_another_admin(
-                user_id=user_id,
-                table_id=table_pk,
-            ):
-                return responses.no_admins_remaining()
+        # check for remaining admin
+        if permissions_serializer.validated_data.get('can_edit_permissions') is not None:
+            can_edit_permissions = permissions_serializer.validated_data['can_edit_permissions']
+            if not can_edit_permissions:
+                if not table_member_fetchers.get_table_has_another_admin(
+                    user_id=user_id,
+                    table_id=table_pk,
+                ):
+                    return responses.no_admins_remaining()
         permissions_serializer.save()
         serializer = TableMemberSerializer(table_member, context={'request': request})
         return Response(serializer.data)

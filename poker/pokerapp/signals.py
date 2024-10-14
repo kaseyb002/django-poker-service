@@ -22,7 +22,7 @@ def notify_table_saved(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=TableMember)
 def notify_table_member_saved(sender, instance, created, **kwargs):
-    serializer = NoLimitHoldEmHandSerializer(instance)
+    serializer = TableMemberSerializer(instance)
     data = {
         "update_type": "member",
         "member": serializer.data,

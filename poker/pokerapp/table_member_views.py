@@ -8,6 +8,8 @@ from rest_framework import generics, viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from . import table_member_fetchers, table_member_write_helpers
 from . import responses
+from django.shortcuts import get_object_or_404
+from django.http import Http404
 
 class MyTableMemberRetrieveView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
@@ -18,6 +20,8 @@ class MyTableMemberRetrieveView(generics.RetrieveAPIView):
             user_id=request.user.id, 
             table_id=table_pk,
         )
+        if not my_table_member:
+            raise Http404("My table member not found.")
         serializer = TableMemberSerializer(my_table_member, context={'request': request})
         return Response(serializer.data)
 
@@ -31,6 +35,8 @@ class TableMemberRetrieveView(generics.RetrieveDestroyAPIView):
             user_id=user_pk, 
             table_id=table_pk,
         )
+        if not table_member:
+            raise Http404("Table member not found.")
         serializer = TableMemberSerializer(table_member, context={'request': request})
         return Response(serializer.data)
 
@@ -41,6 +47,8 @@ class TableMemberRetrieveView(generics.RetrieveDestroyAPIView):
             user_id=user_pk, 
             table_id=table_pk,
         )
+        if not table_member:
+            raise Http404("Table member not found.")
         my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
             table_id=table_pk,
@@ -52,7 +60,10 @@ class TableMemberRetrieveView(generics.RetrieveDestroyAPIView):
             table_id=table_pk,
         ):
             return responses.no_admins_remaining()
-        table_member_write_helpers.remove_table_member(table_member)
+        table_member_write_helpers.remove_table_member(
+            table_member=table_member, 
+            removed_by=request.user
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 class TableMemberListView(generics.ListAPIView):
@@ -71,14 +82,11 @@ class TableMemberListView(generics.ListAPIView):
             table__id=table_pk
         ).exclude(
             is_deleted=True
-        ).prefetch_related('permissions', 'user', 'user__account')
-
-        # Apply pagination
+        ).prefetch_related(
+            'permissions', 
+            'user', 
+            'user__account',
+        )
         page = self.paginate_queryset(table_members)
-        if page is not None:
-            serializer = TableMemberSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
-
-        # If no pagination is applied, return all data
-        serializer = TableMemberSerializer(tables, many=True, context={'request': request})
-        return Response(serializer.data)
+        serializer = TableMemberSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)

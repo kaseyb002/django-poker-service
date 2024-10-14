@@ -135,3 +135,37 @@ def update_profile_image(request):
     request.user.account.save()
     serializer = UserSerializer(request.user, context={'request': request})
     return Response(serializer.data)
+
+@api_view(['POST', 'DELETE'])
+@permission_classes((IsAuthenticated, ))
+def push_registration(request):
+    """
+    POST: Register push id for user
+
+    DELETE: Delete push id from user's account
+    """
+    class Serializer(serializers.Serializer):
+        push_id = serializers.CharField()
+    serializer = Serializer(data=request.data, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+    push_id = serializer.data['push_id']
+
+    if request.method == 'POST':
+        try:
+            registration = PushNotificationRegistration.objects.get(push_id=push_id)
+            return Response(status=status.HTTP_200_OK, data={"detail": "Push registration with this push_id already exists."})
+        except PushNotificationRegistration.DoesNotExist:
+            registration = PushNotificationRegistration.objects.create(
+                user=request.user, 
+                push_id=push_id,
+            )
+            serializer = PushNotificationRegistrationSerializer(registration, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    elif request.method == 'DELETE':
+        try:
+            registration = PushNotificationRegistration.objects.get(push_id=push_id)
+        except PushNotificationRegistration.DoesNotExist:
+            return responses.not_found("Push registration not found")
+        registration.delete()
+        return Response(status=status.HTTP_200_OK)

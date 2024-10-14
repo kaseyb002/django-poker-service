@@ -1,20 +1,22 @@
-from django.contrib.auth.models import User
+import asyncio
+import threading
+from asgiref.sync import async_to_sync, sync_to_async
 from decimal import Decimal
 from .models import *
 from .serializers import *
-from .pagination import NumberOnlyPagination
-from pokerapp import models
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework import generics, viewsets, status
-from rest_framework.permissions import IsAuthenticated
 from . import table_member_fetchers 
 from . import responses
-from . import table_member_write_helpers
+from . import hand_json_helpers
+from . import delayed_task
+from . import push_notifications, push_notifications_fetchers, push_categories
 import json
 import requests
 from django.utils import timezone
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+import locale
 
 def send_request(path, data):
     json_body = json.loads(json.dumps(data))
@@ -23,40 +25,11 @@ def send_request(path, data):
     response = requests.post(url, json=json_body)
     return response.json()
 
-def is_hand_complete(hand_json):
-    return hand_json['state'].get('hand_complete') is not None
-
 def valid_current_hand(game_id):
     return NoLimitHoldEmHand.objects.filter(
         game__pk=game_id,
         completed__isnull=True
     ).first()
-
-def current_player_user_id(hand_json):
-    waiting_for_player = hand_json['state'].get('waiting_for_player_to_act')
-    if not waiting_for_player:
-        return None
-    current_player_hand_index = waiting_for_player['player_index']
-    current_player_user_id = hand_json['player_hands'][current_player_hand_index]['player']['id']
-    return current_player_user_id
-
-def is_players_turn(user_id, hand_json):
-    current_player_id = current_player_user_id(hand_json)
-    if not current_player_id:
-        return False
-    return str(user_id) == current_player_id
-
-def is_player_waiting_to_move(user_id, hand_json):
-    if is_hand_complete(hand_json):
-        return False
-    if is_players_turn(user_id, hand_json):
-        return False
-    player_hands = hand_json['player_hands']
-    for player_hand in player_hands:
-        if player_hand['player']['id'] == str(user_id):
-            if player_hand['status'] == 'in':
-                return True
-    return False
 
 @api_view(['POST'])
 def deal(request, *args, **kwargs):
@@ -64,8 +37,9 @@ def deal(request, *args, **kwargs):
     Deal hold em hand or return current hand
     """
     game_pk = kwargs.get('game_pk')
-    game = NoLimitHoldEmGame.objects.get(
-        pk=game_pk
+    game = get_object_or_404(
+        NoLimitHoldEmGame,
+        pk=game_pk,
     )
     my_table_member = table_member_fetchers.get_table_member(
         user_id=request.user.id, 
@@ -73,15 +47,20 @@ def deal(request, *args, **kwargs):
     )
     if not my_table_member.permissions.can_deal:
         return responses.unauthorized("User is not permitted to deal.")
-    turn_off_auto_move_for_all_players(game_id=game.id)
+    hand = deal_new_hand(game=game)
+    if type(hand) == Response:
+        response = hand
+        return response
+    serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+    return Response(serializer.data)
+
+def deal_new_hand(game):
     current_hand = NoLimitHoldEmHand.objects.filter(
-        game__pk=game_pk,
-        completed__isnull=True
+        game__pk=game.id,
+        completed__isnull=True,
     ).first()
     if current_hand:
-        serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
-        return Response(serializer.data)
-
+        return current_hand
     def make_player_json(player):
         return {
             'id':str(player.user_id()),
@@ -89,43 +68,51 @@ def deal(request, *args, **kwargs):
             'image_url':player.image_url(),
             'chip_count':float(player.chip_count),
         }
-
+    turn_off_auto_move_for_all_players(game_id=game.id)
+    # sit out players with insufficient stack
     sitting_players = NoLimitHoldEmGamePlayer.objects.filter(
-        game__id=game_pk,
-        is_sitting=True
-    )   
+        game__id=game.id,
+        is_sitting=True,
+    )
     for sitting_player in sitting_players:
-        if sitting_player.chip_count < game.big_blind:
+        if sitting_player.chip_count <= 0:
             sitting_player.is_sitting=False
             sitting_player.save()
+    # check player count is in bounds
     if sitting_players.count() < 2:
         return responses.bad_request("Not enough players to play.")
-    sitting_players = players_for_next_hand(game_id=game_pk)
+    if sitting_players.count() > 10:
+        return responses.bad_request("Too many players. " + str(sitting_players.count()) + " sitting. Max is 10." )
+    # make players
+    sitting_players = players_for_next_hand(game_id=game.id)
     sitting_players_json = []
     for sitting_player in sitting_players:
         sitting_players_json.append(make_player_json(sitting_player))
+    # send request to vapor service
     data = {
         'smallBlind':float(game.small_blind),
         'bigBlind':float(game.big_blind),
         'players': sitting_players_json,
     }
     hand_json = send_request('deal', data)
-    hand = NoLimitHoldEmHand(
+    # save hand
+    hand = NoLimitHoldEmHand.objects.create(
         game=game,
         hand_json=hand_json,
     )
-    hand.save()
     hand.players.set(sitting_players)
-    if is_hand_complete(hand_json):
-        hand.completed = timezone.now()
+    # if some players cannot cover the blind, an auto-completed hand may result
+    hand = finish_move(
+        current_hand=hand,
+        hand_json=hand_json,
+    )
     hand.save()
-    serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
-    return Response(serializer.data)
+    return hand
 
 def players_for_next_hand(game_id):
     sitting_players = NoLimitHoldEmGamePlayer.objects.filter(
         game__id=game_id,
-        is_sitting=True
+        is_sitting=True,
     ).prefetch_related(
         'table_member', 
         'table_member__user', 
@@ -159,8 +146,9 @@ def players_for_next_hand(game_id):
 @api_view(['POST'])
 def make_move(request, *args, **kwargs):
     game_pk = kwargs.get('game_pk')
-    game = NoLimitHoldEmGame.objects.get(
-        pk=game_pk
+    game = get_object_or_404(
+        NoLimitHoldEmGame,
+        pk=game_pk,
     )
     my_table_member = table_member_fetchers.get_table_member(
         user_id=request.user.id, 
@@ -171,27 +159,43 @@ def make_move(request, *args, **kwargs):
     current_hand = valid_current_hand(game_pk)
     if not current_hand:
         return responses.bad_request("No hand currently being played.")
-    if not is_players_turn(request.user.id, current_hand.hand_json):
+    if not hand_json_helpers.is_players_turn(request.user.id, current_hand.hand_json):
         return responses.bad_request("Not the user's turn.")
     action = kwargs.get('action')
+    round_before_move = current_hand.hand_json['round']
+    amount = None
+    if action == 'bet':
+        class Serializer(serializers.Serializer):
+            amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+        serializer = Serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        amount = Decimal(serializer.data['amount'])
+
     hand_json = act_on_hand(
-        request=request, 
         action=action, 
+        amount=amount,
         current_hand=current_hand,
     )
+    if action == 'bet':
+        turn_off_auto_move_for_all_players(game_id=game_pk)
+    if hand_json['round'] is not round_before_move:
+        turn_off_auto_move_for_all_players(game_id=game_pk)
     current_hand = finish_move(
-        request=request,
         current_hand=current_hand,
         hand_json=hand_json,
     )
+    if type(current_hand) == Response:
+        response = current_hand
+        return response
     serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
     return Response(serializer.data)
 
 @api_view(['POST'])
 def force_move(request, *args, **kwargs):
     game_pk = kwargs.get('game_pk')
-    game = NoLimitHoldEmGame.objects.get(
-        pk=game_pk
+    game = get_object_or_404(
+        NoLimitHoldEmGame,
+        pk=game_pk,
     )
     my_table_member = table_member_fetchers.get_table_member(
         user_id=request.user.id, 
@@ -202,15 +206,28 @@ def force_move(request, *args, **kwargs):
     current_hand = valid_current_hand(game_pk)
     if not current_hand:
         return responses.bad_request("No hand currently being played.")
+    player_user_id = hand_json_helpers.current_player_user_id(current_hand.hand_json)
     hand_json = act_on_hand(
-        request=request, 
         action='force', 
+        amount=None,
         current_hand=current_hand,
     )
     current_hand = finish_move(
         current_hand=current_hand,
         hand_json=hand_json,
     )
+
+    if type(current_hand) == Response:
+        response = current_hand
+        return response
+
+    if player_user_id:
+        notify_i_was_forced_moved(
+            current_hand=current_hand, 
+            player_user_id=player_user_id, 
+            request=request,
+        )
+
     serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
     return Response(serializer.data)
 
@@ -222,8 +239,9 @@ def toggle_auto_move(request, *args, **kwargs):
     serializer.is_valid(raise_exception=True)
     is_auto_move_on = serializer.data['is_auto_move_on']
     game_pk = kwargs.get('game_pk')
-    game = NoLimitHoldEmGame.objects.get(
-        pk=game_pk
+    game = get_object_or_404(
+        NoLimitHoldEmGame,
+        pk=game_pk,
     )
     my_table_member = table_member_fetchers.get_table_member(
         user_id=request.user.id, 
@@ -234,25 +252,22 @@ def toggle_auto_move(request, *args, **kwargs):
     current_hand = valid_current_hand(game_pk)
     if not current_hand:
         return responses.bad_request("No hand currently being played.")
-    if not is_player_waiting_to_move(request.user.id, current_hand.hand_json):
+    if not hand_json_helpers.is_player_waiting_to_move(request.user.id, current_hand.hand_json):
         return responses.bad_request("User is not waiting to play.")
-    player = NoLimitHoldEmGamePlayer.objects.filter(
-        game__pk=game_pk
-    ).get(
-        table_member__user__id=request.user.id
+    player = get_object_or_404(
+        NoLimitHoldEmGamePlayer,
+        game__pk=game_pk,
+        table_member__user__id=request.user.id,
     )
     player.is_auto_move_on = is_auto_move_on
     player.save()
     serializer = NoLimitHoldEmGamePlayerSerializer(player, context={'request': request})
     return Response(serializer.data)
 
-def act_on_hand(request, action, current_hand):
+def act_on_hand(action, amount, current_hand):
     if action == 'bet':
-        class Serializer(serializers.Serializer):
-            amount = serializers.DecimalField(max_digits=10, decimal_places=2)
-        serializer = Serializer(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        amount = Decimal(serializer.data['amount'])
+        if not amount:
+            return responses.bad_request("Cannot bet 0.")
         data = {
             'amount':float(amount),
             'hand': current_hand.hand_json,
@@ -266,10 +281,8 @@ def act_on_hand(request, action, current_hand):
     else:
         return responses.bad_request("Invalid move name.")
 
-def finish_move(request, current_hand, hand_json):
+def finish_move(current_hand, hand_json):
     current_hand.hand_json = hand_json
-    if is_hand_complete(hand_json):
-        current_hand.completed = timezone.now()
     player_chip_counts = {
         player['player']['id']: player['player']['chip_count']
         for player in hand_json['player_hands']
@@ -279,14 +292,27 @@ def finish_move(request, current_hand, hand_json):
             player.chip_count = player_chip_counts[str(player.user_id())]
             player.save()
     current_hand.save()
-    current_hand = auto_move_if_needed(
-        request=request,
-        current_hand=current_hand,
-    )
-    return current_hand
+    if hand_json_helpers.is_hand_complete(hand_json):
+        current_hand.completed = timezone.now()
+        current_hand.save()
+        notify_winners_and_losers(current_hand=current_hand)
+        notify_big_pot_subscribers(current_hand=current_hand)
+        def deal_new():
+            deal_new_hand(game=current_hand.game)
+        delayed_task.run_delayed(
+            task=deal_new,
+            delay=5,
+        )
+        return current_hand
+    else:
+        current_hand = auto_move_if_needed(
+            current_hand=current_hand,
+        )
+        notify_is_my_turn(current_hand)
+        return current_hand
 
-def auto_move_if_needed(request, current_hand):
-    user_id = current_player_user_id(current_hand.hand_json)
+def auto_move_if_needed(current_hand):
+    user_id = hand_json_helpers.current_player_user_id(current_hand.hand_json)
     if not user_id:
         return current_hand
     player = NoLimitHoldEmGamePlayer.objects.filter(
@@ -296,12 +322,11 @@ def auto_move_if_needed(request, current_hand):
     )
     if player.is_auto_move_on:
         hand_json = act_on_hand(
-            request=request, 
             action='force', 
+            amount=None,
             current_hand=current_hand,
         )
         current_hand = finish_move(
-            request=request,
             current_hand=current_hand,
             hand_json=hand_json,
         )
@@ -310,9 +335,131 @@ def auto_move_if_needed(request, current_hand):
 @transaction.atomic
 def turn_off_auto_move_for_all_players(game_id):
     players = NoLimitHoldEmGamePlayer.objects.filter(
-        game__pk=game_id
+        game__pk=game_id,
+        is_auto_move_on=True,
     )
     for player in players:
         player.is_auto_move_on = False
         player.save()
 
+def notify_i_was_forced_moved(current_hand, player_user_id, request):
+    table_member = table_member_fetchers.get_table_member(
+        user_id=player_user_id,
+        table_id=current_hand.game.table.id,
+    )
+    if table_member.notification_settings.i_was_forced_moved:
+        action = "fold"
+        if hand_json_helpers.is_player_in_hand(
+            user_id=player_user_id,
+            hand_json=current_hand.hand_json,
+        ):
+            action = "check"
+        push_notifications.send_push(
+            to_user=table_member.user, 
+            text=request.user.username + " forced you to move.",
+            title="You were forced to " + action + ".", 
+            subtitle=table_member.table.name,
+            category=push_categories.I_WAS_FORCED_MOVED,
+            extra_data={
+                "table_id": current_hand.game.table.id,
+                "game_id": current_hand.game.id,
+            },
+        )
+
+def notify_is_my_turn(current_hand):
+    player_user_id = hand_json_helpers.current_player_user_id(current_hand.hand_json)
+    if player_user_id:
+        table_member = table_member_fetchers.get_table_member(
+            user_id=player_user_id,
+            table_id=current_hand.game.table.id,
+        )
+        if table_member.notification_settings.is_my_turn:
+            board_cards = hand_json_helpers.board_cards(current_hand.hand_json)
+            board_cards_str = hand_json_helpers.board_cards_to_string(
+                board_cards=board_cards, 
+                round=current_hand.hand_json.get('round', 0),
+            )
+            if board_cards_str == "":
+                board_cards_str = "Preflop"
+            else:
+                board_cards_str = "Board: " + board_cards_str
+            pocket_cards = hand_json_helpers.pocket_cards_for_user(
+                user_id=player_user_id,
+                hand_json=current_hand.hand_json,
+            )
+            pocket_cards_str = hand_json_helpers.pocket_cards_to_string(pocket_cards)
+            push_notifications.send_push(
+                to_user=table_member.user, 
+                text=pocket_cards_str + " " + board_cards_str,
+                title="Your turn", 
+                subtitle=table_member.table.name,
+                category=push_categories.IS_MY_TURN,
+                extra_data={
+                    "table_id": current_hand.game.table.id,
+                    "game_id": current_hand.game.id,
+                },
+            )
+
+def notify_big_pot_subscribers(current_hand):
+    hand_json = current_hand.hand_json
+    (max_net_gain, player_user_id) = hand_json_helpers.biggest_net_gain(hand_json)
+    if max_net_gain > current_hand.game.big_blind * 50:
+        table_member = table_member_fetchers.get_table_member(
+            user_id=player_user_id,
+            table_id=current_hand.game.table.id,
+            check_deleted=False,
+        )
+        subscribed_users = push_notifications_fetchers.users_subscribed_to_big_pot(
+            table_id=current_hand.game.table.id,
+        )
+        if table_member.notification_settings.big_pot:
+            push_notifications.send_push_to_users(
+                users=subscribed_users,
+                text=table_member.username + " made " + str(max_net_gain) + ".",
+                title="Big Pot", 
+                subtitle=table_member.table.name,
+                category=push_categories.BIG_POT,
+                extra_data={
+                    "table_id": table_member.table.id,
+                },
+            ) 
+
+def notify_winners_and_losers(current_hand):
+    hand_json = current_hand.hand_json
+    winners = hand_json_helpers.get_players_with_net_gain(hand_json=hand_json)
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+    for winner in winners:
+        user = get_object_or_404(
+            User,
+            pk=winner['player_id'],
+        )
+        formatted_number = locale.currency(winner['net_gain'], grouping=True)
+        push_notifications.send_push(
+            to_user=user, 
+            text="You made " + formatted_number + ".", 
+            title="You won the hand", 
+            subtitle=current_hand.game.table.name, 
+            category=push_categories.I_WON_HAND, 
+            extra_data={
+                "table_id": current_hand.game.table.id,
+                "game_id": current_hand.game.id,
+            },
+        )
+    losers = hand_json_helpers.get_players_with_net_loss(hand_json=hand_json)
+    for loser in losers:
+        user = get_object_or_404(
+            User,
+            pk=loser['player_id'],
+        )
+        formatted_number = locale.currency(loser['net_loss'], grouping=True)
+        push_notifications.send_push(
+            to_user=user, 
+            text="You lost " + formatted_number + ".", 
+            title="You lost the hand", 
+            subtitle=current_hand.game.table.name, 
+            category=push_categories.I_LOST_HAND, 
+            extra_data={
+                "table_id": current_hand.game.table.id,
+                "game_id": current_hand.game.id,
+            },
+        )

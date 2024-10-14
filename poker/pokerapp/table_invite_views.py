@@ -1,11 +1,9 @@
-from django.contrib.auth.models import User
 from .models import *
 from .serializers import *
 from .pagination import NumberOnlyPagination
-from pokerapp import models
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import generics, viewsets, status
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from . import table_member_fetchers 
 from . import responses
@@ -28,11 +26,8 @@ def join_table(request):
     if invite.used_by:
         return responses.bad_request("Invite code has already been used.")
 
-    # set permissions
-    member_permissions = TablePermissions()
-    member_permissions.save()
+    member_permissions = TablePermissions.objects.create()
 
-    # join table
     table_member = table_member_write_helpers.join_table(
         user=request.user, 
         table_id=invite.table.id,
@@ -66,7 +61,7 @@ def leave_table(request, *args, **kwargs):
         return responses.no_admins_remaining()
     table_member_write_helpers.remove_table_member(table_member=table_member)
     return Response(
-        serializer.data,
+        {},
         status=status.HTTP_204_NO_CONTENT,
     )
 
@@ -80,34 +75,21 @@ class TableInviteListView(generics.ListCreateAPIView):
             table__pk=table_pk,
             created_by__id=request.user.id
         )
-
-        # Apply pagination
         page = self.paginate_queryset(invites)
-        if page is not None:
-            serializer = TableInviteSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
-
-        # If no pagination is applied, return all data
-        serializer = TableInviteSerializer(tables, many=True, context={'request': request})
-        return Response(serializer.data)
+        serializer = TableInviteSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-
         table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
             table_id=table_pk,
         )
-
         if not table_member.permissions.can_send_invite:
             return responses.unauthorized("User does not have invite permissions.")
-
-        #create invite
-        invite = TableInvite(
+        invite = TableInvite.objects.create(
             created_by=request.user,
             table=table_member.table,
         )
-        invite.save()
-            
         serializer = TableInviteSerializer(invite, context={'request': request})
         return Response(serializer.data)

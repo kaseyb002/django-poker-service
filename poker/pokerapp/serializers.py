@@ -77,6 +77,15 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This email address is already in use.")
         return value
 
+class PushNotificationRegistrationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PushNotificationRegistration
+        fields = (
+            'id',
+            'user',
+            'push_id',
+        )
+
 class TableSerializer(serializers.ModelSerializer):
     class Meta:
         model = Table
@@ -85,7 +94,6 @@ class TableSerializer(serializers.ModelSerializer):
             'created', 
             'name', 
             'image_url',
-            'selected_game',
         ]
 
 class TableSettingsSerializer(serializers.ModelSerializer):
@@ -114,6 +122,22 @@ class TablePermissionsSerializer(serializers.ModelSerializer):
             'can_adjust_chips',
         ]
 
+class TableNotificationSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TableNotificationSettings
+        fields = [
+            'is_my_turn',
+            'new_member_joined',
+            'new_chat_message',
+            'i_was_sat_out',
+            'i_was_forced_moved',
+            'i_was_removed_from_table',
+            'big_pot',
+            'my_chips_adjusted',
+            'i_won_hand',
+            'i_lost_hand',
+        ]
+
 class TableInviteSerializer(serializers.ModelSerializer):
     class Meta:
         model = TableInvite
@@ -133,6 +157,7 @@ class TableMemberSerializer(serializers.ModelSerializer):
         model = TableMember
         fields = [
             'id',
+            'created',
             'table',
             'user',
             'username',
@@ -185,7 +210,7 @@ class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
 
 class NoLimitHoldEmChipAdjustmentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = NoLimitHoldEmChipAdjusment
+        model = NoLimitHoldEmChipAdjustment
         fields = [
             'id', 
             'created', 
@@ -195,6 +220,7 @@ class NoLimitHoldEmChipAdjustmentSerializer(serializers.ModelSerializer):
         ]
 
 class CurrentGameSerializer(serializers.ModelSerializer):
+    table = TableSerializer(read_only=True)
     no_limit_hold_em_game = NoLimitHoldEmGameSerializer(read_only=True)
 
     class Meta:

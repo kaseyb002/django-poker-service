@@ -5,26 +5,29 @@ from .table_member_views import MyTableMemberRetrieveView, TableMemberRetrieveVi
 from .table_invite_views import TableInviteListView
 from .table_chat_views import TableChatMessageListView, TableChatMetadataRetrieveView
 from .table_member_permissions import TableMemberPermissionsUpdateView
-from .game_views import CurrentGameRetrieveView
-from . import table_invite_views, user_views, table_views, no_limit_hold_em_views, no_limit_hold_em_action_views
+from .game_views import CurrentGameRetrieveView, CurrentGameListView
+from . import table_invite_views, user_views, no_limit_hold_em_views, no_limit_hold_em_action_views
 from .no_limit_hold_em_views import PlayerListView, SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView, NoLimitHoldEmHandListView, NoLimitHoldEmHandRetrieveView
 from .no_limit_hold_em_adjustment_views import NoLimitHoldChipAdjustmentListView
-from . import consumers
+from .table_notification_settings_views import TableNotificationSettingsRetrieveView
 
 urlpatterns = [
     # user 
     path('api-auth/', include('rest_framework.urls')),
-    path('account/register', user_views.register),
-    path('account/api-token-auth', user_views.CustomAuthToken.as_view()),
-    path('account/my_user', user_views.my_user),
-    path('account/my_user/username', user_views.update_username),
-    path('account/my_user/username/validate', user_views.username_is_valid),
-    path('account/my_user/profile_image', user_views.update_profile_image),
+    path('account/register', user_views.register, name='register'),
+    path('account/api-token-auth', user_views.CustomAuthToken.as_view(), name='login'),
+    path('account/my_user', user_views.my_user, name='my-user'),
+    path('account/my_user/username', user_views.update_username, name='update-username'),
+    path('account/my_user/username/validate', user_views.username_is_valid, name='validate-username'),
+    path('account/my_user/profile_image', user_views.update_profile_image, name='update-profile-image'),
+    path('account/my_user/push_registration', user_views.push_registration, name='push-registration'),
     
     # tables
     path('tables', TableListView.as_view(), name='table-list'),
+    path('games', CurrentGameListView.as_view(), name='game-list'),
     path('tables/<uuid:pk>', TableRetrieveView.as_view(), name='table-detail'),
     path('tables/<uuid:table_pk>/settings', TableSettingsRetrieveView.as_view(), name='table-settings'),
+    path('tables/<uuid:table_pk>/notification_settings', TableNotificationSettingsRetrieveView.as_view(), name='table-notification-settings'),
     path('tables/<uuid:table_pk>/current_game', CurrentGameRetrieveView.as_view(), name='current-game'),
     path('tables/<uuid:table_pk>/current_game/no_limit_hold_em', CurrentHoldEmGameRetrieveView.as_view(), name='current-hold-em-game'),
     path('tables/<uuid:table_pk>/current_game/no_limit_hold_em/current_hand', CurrentHoldEmHandRetrieveView.as_view(), name='current-hold-em-hand'),
@@ -38,8 +41,8 @@ urlpatterns = [
     path('tables/<uuid:table_pk>/members/<int:user_pk>/permissions', TableMemberPermissionsUpdateView.as_view(), name='table-member-permissions'),
 
     # invites
-    path('tables/join', table_invite_views.join_table),
-    path('tables/<uuid:table_pk>/leave', table_invite_views.leave_table),
+    path('tables/join', table_invite_views.join_table, name='join-table'),
+    path('tables/<uuid:table_pk>/leave', table_invite_views.leave_table, name='leave-table'),
     path('tables/<uuid:table_pk>/invites', TableInviteListView.as_view(), name='table-invites'),
 
     # chat

@@ -12,6 +12,8 @@ from . import table_member_fetchers
 from . import no_limit_hold_em_game_fetchers
 from . import responses
 from . import table_member_write_helpers
+from . import push_notifications, push_categories
+from django.shortcuts import get_object_or_404
 
 NO_LIMIT_HOLD_EM_MAX_SITTING_PLAYERS = 10
 
@@ -20,8 +22,9 @@ class HoldEmGameRetrieveView(generics.RetrieveUpdateAPIView):
     
     def get(self, request, *args, **kwargs):
         game_pk = self.kwargs.get('game_pk')
-        game = NoLimitHoldEmGame.objects.get(
-            pk=game_pk
+        game = get_object_or_404(
+            NoLimitHoldEmGame,
+            pk=game_pk,
         )
         my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
@@ -34,8 +37,9 @@ class HoldEmGameRetrieveView(generics.RetrieveUpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         game_pk = self.kwargs.get('game_pk')
-        game = NoLimitHoldEmGame.objects.get(
-            pk=game_pk
+        game = get_object_or_404(
+            NoLimitHoldEmGame,
+            pk=game_pk,
         )
         my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
@@ -64,8 +68,9 @@ class CurrentHoldEmGameRetrieveView(generics.RetrieveAPIView):
         )
         if not my_table_member:
             return responses.user_not_in_table()
-        game = CurrentGame.objects.get(
-            table__pk=table_pk
+        game = get_object_or_404(
+            CurrentGame,
+            table__pk=table_pk,
         ).no_limit_hold_em_game
         if not game:
             return responses.not_found("Game not found.")
@@ -77,8 +82,9 @@ class CurrentHoldEmHandRetrieveView(generics.RetrieveAPIView):
     
     def get(self, request, *args, **kwargs):
         game_pk = self.kwargs.get('game_pk')
-        game = NoLimitHoldEmGame.objects.get(
-           pk=game_pk
+        game = get_object_or_404(
+            NoLimitHoldEmGame,
+            pk=game_pk,
         )
         if not game:
             return responses.not_found("Game not found.")
@@ -92,7 +98,7 @@ class CurrentHoldEmHandRetrieveView(generics.RetrieveAPIView):
             game__pk=game.id
         ).first()
         if not hand:
-            return Response({'hand': None})
+            return Response({'hand':None})
         serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
         return Response({'hand':serializer.data})
 
@@ -102,7 +108,6 @@ class PlayerRetrieveView(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         game_pk = self.kwargs.get('game_pk')
         user_pk = self.kwargs.get('user_pk')
-
         player = no_limit_hold_em_game_fetchers.get_or_make_game_player(
             user_id=user_pk,
             game_id=game_pk,
@@ -122,8 +127,9 @@ class PlayerListView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         game_pk = self.kwargs.get('game_pk')
-        game = NoLimitHoldEmGame.objects.get(
-            pk=game_pk
+        game = get_object_or_404(
+            NoLimitHoldEmGame,
+            pk=game_pk,
         )
         my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
@@ -138,24 +144,18 @@ class PlayerListView(generics.ListAPIView):
             'table_member__user', 
             'table_member__user__account',
         )
-
-        # Apply pagination
         page = self.paginate_queryset(players)
-        if page is not None:
-            serializer = NoLimitHoldEmGamePlayerSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
-
-        serializer = NoLimitHoldEmGamePlayerSerializer(players, many=True, context={'request': request})
-        return Response(serializer.data)
-
+        serializer = NoLimitHoldEmGamePlayerSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
 class SittingPlayersListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
         game_pk = self.kwargs.get('game_pk')
-        game = NoLimitHoldEmGame.objects.get(
-            pk=game_pk
+        game = get_object_or_404(
+            NoLimitHoldEmGame,
+            pk=game_pk,
         )
         my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
@@ -171,7 +171,6 @@ class SittingPlayersListView(generics.ListAPIView):
             'table_member__user', 
             'table_member__user__account',
         )
-
         serializer = NoLimitHoldEmGamePlayerSerializer(sitting_players, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -181,12 +180,13 @@ class NoLimitHoldEmHandRetrieveView(generics.RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         game_pk = self.kwargs.get('game_pk')
         hand_pk = self.kwargs.get('hand_pk')
-
-        game = NoLimitHoldEmGame.objects.get(
-            pk=game_pk
+        game = get_object_or_404(
+            NoLimitHoldEmGame,
+            pk=game_pk,
         )
-        hand = NoLimitHoldEmHand.objects.get(
-            pk=hand_pk
+        hand = get_object_or_404(
+            NoLimitHoldEmHand,
+            pk=hand_pk,
         )
         my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
@@ -203,8 +203,9 @@ class NoLimitHoldEmHandListView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         game_pk = self.kwargs.get('game_pk')
-        game = NoLimitHoldEmGame.objects.get(
-            pk=game_pk
+        game = get_object_or_404(
+            NoLimitHoldEmGame,
+            pk=game_pk,
         )
         my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
@@ -215,15 +216,9 @@ class NoLimitHoldEmHandListView(generics.ListAPIView):
         hands = NoLimitHoldEmHand.objects.filter(
             game__id=game_pk,
         )
-
-        # Apply pagination
         page = self.paginate_queryset(hands)
-        if page is not None:
-            serializer = NoLimitHoldEmHandSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
-
-        serializer = NoLimitHoldEmHandSerializer(hands, many=True, context={'request': request})
-        return Response(serializer.data)
+        serializer = NoLimitHoldEmHandSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
 @api_view(['POST'])
 def sit(request, *args, **kwargs):
@@ -231,8 +226,9 @@ def sit(request, *args, **kwargs):
     Sits down to play hold em
     """
     game_pk = kwargs.get('game_pk')
-    game = NoLimitHoldEmGame.objects.get(
-        pk=game_pk
+    game = get_object_or_404(
+        NoLimitHoldEmGame,
+        pk=game_pk,
     )
     table_member = table_member_fetchers.get_table_member(
         user_id=request.user.id, 
@@ -240,13 +236,10 @@ def sit(request, *args, **kwargs):
     )
     if not table_member.permissions.can_play:
         return responses.unauthorized("User is not permitted to play.")
-
     player = no_limit_hold_em_game_fetchers.get_or_make_game_player(
         user_id=request.user.id,
         game_id=game_pk,
     )
-        
-    # now we need to sit them down
     current_hand = NoLimitHoldEmHand.objects.filter(
         game__id=game_pk,
         completed__isnull=True,
@@ -313,6 +306,7 @@ def sit_player_out(request, *args, **kwargs):
     """
     Sit another player out of hold em game
     """
+    print("made it this far")
     game_pk = kwargs.get('game_pk')
     user_pk = kwargs.get('user_pk')
     player = no_limit_hold_em_game_fetchers.get_or_make_game_player(
@@ -327,13 +321,29 @@ def sit_player_out(request, *args, **kwargs):
         return responses.unauthorized("User does not have permission to sit players out.")
     player.is_sitting = False
     player.save()
+    print("made it this far")
+    
+    if player.table_member.notification_settings.i_was_sat_out:
+        print("made it this far")
+        push_notifications.send_push(
+            to_user=player.table_member.user,
+            text=request.user.username + " sat you out of the game. Sit down again to keep playing.",
+            title="You were sat out.",
+            subtitle=player.game.table.name,
+            extra_data={
+                "game_id": player.game.id,
+                "table_id": player.game.table.id,
+            },
+            category=push_categories.I_WAS_SAT_OUT,
+        )
+
     serializer = NoLimitHoldEmGamePlayerSerializer(player, context={'request': request})
     return Response(serializer.data)
 
 @api_view(['PUT'])
 def add_chips(request, *args, **kwargs):
     """
-    Sit another player out of hold em game
+    Adjust a player's chip stack in a hold em game
     """
     class Serializer(serializers.Serializer):
         amount = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -363,20 +373,55 @@ def add_chips(request, *args, **kwargs):
         players__pk=player.id,
     ).first()
     if current_hand:
-        return responses.bad_request("Player chips cannot be adjusted while they're playing a hand.")
+        return responses.bad_request("Player's chips cannot be adjusted while they're playing a hand.")
 
+    original_player_chip_count = player.chip_count
     player.chip_count += amount
+    bounded_amount = amount
     if player.chip_count < 0:
+        bounded_amount = original_player_chip_count
         player.chip_count = 0
     player.save()
 
+    action = "added" if amount >= 0 else "removed"
+    preposition = "to" if amount >= 0 else "from"
+
+    summary_statement = (
+        f"{request.user.username} {action} ${abs(bounded_amount)} {preposition} "
+        f"{player.table_member.user.username}'s stack."
+    )
+
     # record adjustment
-    adjustment = NoLimitHoldEmChipAdjusment(
+    adjustment = NoLimitHoldEmChipAdjustment(
         player=player,
         adjusted_by=my_table_member,
-        amount=amount,
+        amount=bounded_amount,
+        summary_statement=summary_statement,
     )
     adjustment.save()
+
+    if player.table_member.notification_settings.my_chips_adjusted:
+        title = "Chips added"
+        if amount < 0:
+            title = "Chips removed"
+        subtitle = player.table_member.table.name
+        action = "added" if amount >= 0 else "removed"
+        preposition = "to" if amount >= 0 else "from"
+        summary_statement = (
+            f"{request.user.username} {action} ${abs(bounded_amount)} {preposition} "
+            f"your stack."
+        )
+        push_notifications.send_push(
+            to_user=player.table_member.user,
+            text=summary_statement,
+            title=title,
+            subtitle=subtitle,
+            extra_data={
+                "game_id": player.game.id,
+                "table_id": player.game.table.id,
+            },
+            category=push_categories.MY_CHIPS_ADJUSTED,
+        )
 
     serializer = NoLimitHoldEmGamePlayerSerializer(player, context={'request': request})
     return Response(serializer.data)

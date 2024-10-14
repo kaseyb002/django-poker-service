@@ -83,6 +83,11 @@ class NoLimitHoldEmHandAdmin(admin.ModelAdmin):
     
 admin.site.register(NoLimitHoldEmHand, NoLimitHoldEmHandAdmin)
 
+class NoLimitHoldEmChipAdjustmentAdmin(admin.ModelAdmin):
+    list_display = ('id',)
+    
+admin.site.register(NoLimitHoldEmChipAdjustment, NoLimitHoldEmChipAdjustmentAdmin)
+
 class ChatRoomAdmin(admin.ModelAdmin):
     list_display = ('id',)
 
@@ -97,3 +102,8 @@ class ChatMessageAdmin(admin.ModelAdmin):
     list_display = ('id','text')
 
 admin.site.register(ChatMessage, ChatMessageAdmin)
+
+class TableNotificationSettingsAdmin(admin.ModelAdmin):
+    list_display = ('id',)
+
+admin.site.register(TableNotificationSettings, TableNotificationSettingsAdmin)

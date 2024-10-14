@@ -11,18 +11,16 @@ from . import table_member_fetchers
 from . import responses
 from django.shortcuts import get_object_or_404
 
-class TableSettingsRetrieveView(generics.RetrieveUpdateAPIView):
+class TableNotificationSettingsRetrieveView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, *args, **kwargs):
-        pk = self.kwargs.get('table_pk')
-        table_settings = get_object_or_404(
-            TableSettings,
-            table__members__user__id=request.user.id,
-            table__members__is_deleted=False,
-            table__pk=pk,
+        table_pk = self.kwargs.get('table_pk')
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=table_pk,
         )
-        serializer = TableSettingsSerializer(table_settings, context={'request': request})
+        serializer = TableNotificationSettingsSerializer(my_table_member.notification_settings, context={'request': request})
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
@@ -31,14 +29,8 @@ class TableSettingsRetrieveView(generics.RetrieveUpdateAPIView):
             user_id=request.user.id, 
             table_id=table_pk,
         )
-        if not my_table_member.permissions.can_edit_settings:
-            return responses.unauthorized("User cannot edit settings")
-        table_settings = get_object_or_404(
-            TableSettings,
-            table__pk=table_pk,
-        )
-        settings_serializer = TableSettingsSerializer(
-            table_settings,
+        settings_serializer = TableNotificationSettingsSerializer(
+            my_table_member.notification_settings,
             data=request.data, 
             partial=True,
             context={'request': request},

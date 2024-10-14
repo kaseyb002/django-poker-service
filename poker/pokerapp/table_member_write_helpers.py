@@ -1,33 +1,65 @@
-from .models import Table, TableMember, TableInvite
+from .models import Table, TableMember, NoLimitHoldEmGamePlayer, TableNotificationSettings
 from . import table_member_fetchers
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+from . import push_categories, push_notifications, push_notifications_fetchers
 
 def join_table(user, table_id, permissions):
+    table_member = table_member_fetchers.get_table_member
     table_member = TableMember.objects.filter(
-        user__id=user_id
+        user__id=user.id
     ).filter(
         table__id=table_id
     ).first()
     if not table_member:
-        table = Table.objects.get(pk=table_id)
+        table = get_object_or_404(
+            Table,
+            pk=table_id,
+        )
+        notification_settings = TableNotificationSettings.objects.create()
         table_member = TableMember(
             user=user,
             table=table,
             permissions=permissions,
+            notification_settings=notification_settings,
         )
     table_member.is_deleted = False
     table_member.save()
+    subscribed_users = push_notifications_fetchers.users_subscribed_to_new_member_joined(
+        table_id=table_id,
+    )
+    push_notifications.send_push_to_users(
+        users=subscribed_users,
+        text="Give them a welcome.",
+        title=table_member.user.username + " joined the table",
+        subtitle=table_member.table.name,
+        category=push_categories.NEW_MEMBER_JOINED,
+        extra_data={
+            "table_id": table_id,
+        },
+    )
     return table_member
 
 @transaction.atomic
-def remove_table_member(table_member):
+def remove_table_member(table_member, removed_by):
     table_member.is_deleted = True
     table_member.save()
     # sit them out of all games
     players = NoLimitHoldEmGamePlayer.objects.filter(
-        player__table_member__id=table_member.id,
-        player__is_sitting=True
+        table_member__id=table_member.id,
+        is_sitting=True
     )
     for player in players:
         player.is_sitting=False
         player.save()
+    if table_member.notification_settings.i_was_removed_from_table:
+        push_notifications.send_push(
+            to_user=table_member.user,
+            text=removed_by.username + " removed you.",
+            title="Removed from the table",
+            subtitle=table_member.table.name,
+            category=push_categories.I_WAS_REMOVED_FROM_TABLE,
+            extra_data={
+                "table_id": table_member.table.id,
+            },
+        )

@@ -9,15 +9,17 @@ class Account(models.Model):
     image_url = models.URLField(null=True, blank=True)
     bio = models.CharField(max_length=1024, blank=True)
 
+class PushNotificationRegistration(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey('auth.User', related_name='push_registrations', on_delete=models.CASCADE)
+    push_id = models.CharField(max_length=192, blank=True)
+
 class Table(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey('auth.User', related_name='created_tables', on_delete=models.SET_NULL, null=True)
+    created_by = models.ForeignKey('auth.User', related_name='created_tables', on_delete=models.SET_NULL, null=True, editable=False)
     name = models.CharField(max_length=25, blank=False)
     image_url = models.URLField(null=True, blank=True)
-
-    def selected_game(self):
-        return self.current_game.selected_game
 
     class Meta:
         ordering = ['created']
@@ -28,6 +30,7 @@ class TableSettings(models.Model):
     table = models.OneToOneField(
         Table,
         on_delete=models.CASCADE,
+        editable=False,
     )
     turn_time_limit = models.DurationField(null=True, blank=True)
 
@@ -45,6 +48,22 @@ class TablePermissions(models.Model):
     can_adjust_chips = models.BooleanField(default=False)
     can_deal = models.BooleanField(default=True)
 
+class TableNotificationSettings(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    is_my_turn = models.BooleanField(default=True)
+    new_member_joined = models.BooleanField(default=False)
+    new_chat_message = models.BooleanField(default=True)
+    i_was_sat_out = models.BooleanField(default=True)
+    i_was_forced_moved = models.BooleanField(default=True)
+    i_was_removed_from_table = models.BooleanField(default=True)
+    # no limit
+    big_pot = models.BooleanField(default=True)
+    my_chips_adjusted = models.BooleanField(default=True)
+    i_won_hand = models.BooleanField(default=True)
+    i_lost_hand = models.BooleanField(default=True)
+
 class TableInvite(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_by = models.ForeignKey('auth.User', related_name='created_invites', on_delete=models.SET_NULL, null=True)
@@ -60,6 +79,7 @@ class TableMember(models.Model):
     user = models.ForeignKey('auth.User', related_name='memberships', on_delete=models.CASCADE)
     table = models.ForeignKey(Table, related_name='members', on_delete=models.CASCADE)
     permissions = models.OneToOneField(TablePermissions, null=True, on_delete=models.SET_NULL)
+    notification_settings = models.OneToOneField(TableNotificationSettings, null=True, on_delete=models.SET_NULL)
 
     def username(self):
         return self.user.username
@@ -119,23 +139,21 @@ class NoLimitHoldEmHand(models.Model):
     hand_json = models.JSONField(null=False, blank=False)
 
     def is_completed(self):
-        return not completed
+        return not self.completed
 
     class Meta:
         ordering = ['-created']
 
-class NoLimitHoldEmChipAdjusment(models.Model):
+class NoLimitHoldEmChipAdjustment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
     player = models.ForeignKey(NoLimitHoldEmGamePlayer, related_name='chip_adjustments', on_delete=models.CASCADE)
     adjusted_by = models.ForeignKey(TableMember, related_name='chip_adjustments', on_delete=models.SET_NULL, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
+    summary_statement = models.CharField(max_length=1024, blank=False)
 
-    def summary_statement(self):
-        if self.amount < 0:
-            return "Subtracted some chips"
-        else:
-            return "Added some chips"
+    class Meta:
+        ordering = ['-created']
  
 class CurrentGame(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

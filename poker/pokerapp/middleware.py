@@ -11,15 +11,12 @@ def get_user_from_token(token_key):
         token = Token.objects.get(key=token_key)
         return token.user
     except Token.DoesNotExist:
-        print("token does not exist")
         return AnonymousUser()
 
 
 class TokenAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
         close_old_connections()
-
-        print("heyyyyyyyy")
 
         # Get the token from query string or headers
         query_string = parse_qs(scope["query_string"].decode())
@@ -29,9 +26,7 @@ class TokenAuthMiddleware(BaseMiddleware):
             headers = dict(scope["headers"])
             # Check for Authorization header (with Bearer token)
             auth_header = headers.get(b'authorization', None)
-            print("auth_header")
             if auth_header:
-                print("found auth_header")
                 auth_header = auth_header.decode('utf-8')
                 if auth_header.startswith('Bearer '):
                     token_key = auth_header.split(' ')[1]

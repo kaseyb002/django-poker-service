@@ -1,21 +1,23 @@
 from .models import *
 from .serializers import *
 from .pagination import NumberOnlyPagination
-from pokerapp import models
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import generics, viewsets, status
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from . import table_member_fetchers, table_member_write_helpers
+from . import table_member_fetchers
 from . import responses
+from . import push_notifications_fetchers, push_notifications, push_categories
+from django.shortcuts import get_object_or_404
 
 class TableChatMetadataRetrieveView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        table = Table.objects.get(
-            pk=table_pk
+        table = get_object_or_404(
+            Table, 
+            pk=table_pk,
         )
         my_table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
@@ -23,13 +25,14 @@ class TableChatMetadataRetrieveView(generics.RetrieveAPIView):
         )
         if not my_table_member:
             return responses.unauthorized("User is not a member of this table.")
-        table_chat_room = TableChatRoom.objects.get(
-            table__id=table_pk
+        table_chat_room = get_object_or_404(
+            TableChatRoom,
+            table__id=table_pk,
         )
         response = {
             "room": table_chat_room.room.id,
             "table": table.id,
-            "table_name": table.name
+            "table_name": table.name,
         }
         return Response(response)
 
@@ -45,24 +48,21 @@ class TableChatMessageListView(generics.ListCreateAPIView):
         )
         if not my_table_member:
             return responses.user_not_in_table()
-        table_chat_room = TableChatRoom.objects.get(
-            table__pk=table_pk
+        table_chat_room = get_object_or_404(
+            TableChatRoom,
+            table__pk=table_pk,
         )
         chat_messages = ChatMessage.objects.filter(
             room__pk=table_chat_room.room.id
         ).exclude(
             is_deleted=True
-        ).prefetch_related('user', 'user__account')
-
-        # Apply pagination
+        ).prefetch_related(
+            'user', 
+            'user__account',
+        )
         page = self.paginate_queryset(chat_messages)
-        if page is not None:
-            serializer = ChatMessageSerializer(page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
-
-        # If no pagination is applied, return all data
-        serializer = ChatMessageSerializer(chat_messages, many=True, context={'request': request})
-        return Response(serializer.data)
+        serializer = ChatMessageSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         class Serializer(serializers.Serializer):
@@ -80,14 +80,28 @@ class TableChatMessageListView(generics.ListCreateAPIView):
             return responses.user_not_in_table()
         if not my_table_member.permissions.can_chat:
             return responses.unauthorized("User is not permitted to chat.")
-        table_chat_room = TableChatRoom.objects.get(
-            table__pk=table_pk
+        table_chat_room = get_object_or_404(
+            TableChatRoom,
+            table__pk=table_pk,
         )
-        chat_message = ChatMessage(
+        chat_message = ChatMessage.objects.create(
             text=text,
             user=request.user,
-            room=table_chat_room.room
+            room=table_chat_room.room,
         )
-        chat_message.save()
+        subscribed_users = push_notifications_fetchers.users_subscribed_to_chat_message(
+            table_id=table_pk,
+            author_user_id=my_table_member.user.id,
+        )
+        push_notifications.send_push_to_users(
+            users=subscribed_users,
+            text=chat_message.text,
+            title=my_table_member.user.username,
+            subtitle=my_table_member.table.name,
+            category=push_categories.NEW_CHAT_MESSAGE,
+            extra_data={
+                "table_id": table_pk,
+            },
+        )
         serializer = ChatMessageSerializer(chat_message, context={'request': request})
         return Response(serializer.data)
