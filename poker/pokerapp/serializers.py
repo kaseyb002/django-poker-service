@@ -230,6 +230,8 @@ class CurrentGameSerializer(serializers.ModelSerializer):
             'table',
             'selected_game',
             'no_limit_hold_em_game',
+            'users_turn',
+            'last_move',
         ]
 
 class ChatMessageSerializer(serializers.ModelSerializer):

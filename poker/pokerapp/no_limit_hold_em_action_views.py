@@ -21,8 +21,9 @@ import locale
 def send_request(path, data):
     json_body = json.loads(json.dumps(data))
     url = 'http://127.0.0.1:8080/nolimitholdem/' + path
-    # TODO: add error handling
     response = requests.post(url, json=json_body)
+    if response.status_code != 200:
+        return responses.bad_request(response.json().get('reason', "Unknown error."))
     return response.json()
 
 def valid_current_hand(game_id):
@@ -79,8 +80,8 @@ def deal_new_hand(game):
             sitting_player.is_sitting=False
             sitting_player.save()
     # check player count is in bounds
-    if sitting_players.count() < 2:
-        return responses.bad_request("Not enough players to play.")
+    #if sitting_players.count() < 2:
+    #    return responses.bad_request("Not enough players to play.")
     if sitting_players.count() > 10:
         return responses.bad_request("Too many players. " + str(sitting_players.count()) + " sitting. Max is 10." )
     # make players
@@ -291,18 +292,31 @@ def finish_move(current_hand, hand_json):
         if str(player.user_id()) in player_chip_counts:
             player.chip_count = player_chip_counts[str(player.user_id())]
             player.save()
+    current_hand.game.table.current_game.last_move = timezone.now()
+    current_player_id = hand_json_helpers.current_player_user_id(hand_json=hand_json)
+    if current_player_id:
+        current_player = get_object_or_404(
+            NoLimitHoldEmGamePlayer,
+            game__pk=current_hand.game.id,
+            table_member__user__id=current_player_id,
+        )
+        current_hand.game.table.current_game.members_turn = current_player.table_member
+    else:
+        current_hand.game.table.current_game.members_turn = None
+    current_hand.game.table.current_game.save()
     current_hand.save()
     if hand_json_helpers.is_hand_complete(hand_json):
         current_hand.completed = timezone.now()
         current_hand.save()
         notify_winners_and_losers(current_hand=current_hand)
         notify_big_pot_subscribers(current_hand=current_hand)
-        def deal_new():
-            deal_new_hand(game=current_hand.game)
-        delayed_task.run_delayed(
-            task=deal_new,
-            delay=5,
-        )
+        if current_hand.game.auto_deal:
+            def deal_new():
+                deal_new_hand(game=current_hand.game)
+            delayed_task.run_delayed(
+                task=deal_new,
+                delay=5,
+            )
         return current_hand
     else:
         current_hand = auto_move_if_needed(
@@ -361,9 +375,11 @@ def notify_i_was_forced_moved(current_hand, player_user_id, request):
             subtitle=table_member.table.name,
             category=push_categories.I_WAS_FORCED_MOVED,
             extra_data={
-                "table_id": current_hand.game.table.id,
-                "game_id": current_hand.game.id,
+                "table_id": str(current_hand.game.table.id),
+                "no_limit_hold_em_game_id": str(current_hand.game.id),
             },
+            thread_id=push_categories.game_thread_id(current_hand.game.id),
+            collapse_id=push_categories.game_collapse_id(current_hand.game.id),
         )
 
 def notify_is_my_turn(current_hand):
@@ -395,9 +411,11 @@ def notify_is_my_turn(current_hand):
                 subtitle=table_member.table.name,
                 category=push_categories.IS_MY_TURN,
                 extra_data={
-                    "table_id": current_hand.game.table.id,
-                    "game_id": current_hand.game.id,
+                    "table_id": str(current_hand.game.table.id),
+                    "no_limit_hold_em_game_id": str(current_hand.game.id),
                 },
+                thread_id=push_categories.game_thread_id(current_hand.game.id),
+                collapse_id=push_categories.game_collapse_id(current_hand.game.id),
             )
 
 def notify_big_pot_subscribers(current_hand):
@@ -420,8 +438,11 @@ def notify_big_pot_subscribers(current_hand):
                 subtitle=table_member.table.name,
                 category=push_categories.BIG_POT,
                 extra_data={
-                    "table_id": table_member.table.id,
+                    "table_id": str(table_member.table.id),
+                    "no_limit_hold_em_game_id": str(current_hand.game.id),
+                    "no_limit_hold_em_hand_id": str(current_hand.id),
                 },
+                thread_id=push_categories.game_thread_id(current_hand.game.id),
             ) 
 
 def notify_winners_and_losers(current_hand):
@@ -429,37 +450,43 @@ def notify_winners_and_losers(current_hand):
     winners = hand_json_helpers.get_players_with_net_gain(hand_json=hand_json)
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
     for winner in winners:
-        user = get_object_or_404(
-            User,
-            pk=winner['player_id'],
+        table_member = table_member_fetchers.get_table_member(
+            user_id=winner['player_id'],
+            table_id=current_hand.game.table.id,
         )
-        formatted_number = locale.currency(winner['net_gain'], grouping=True)
-        push_notifications.send_push(
-            to_user=user, 
-            text="You made " + formatted_number + ".", 
-            title="You won the hand", 
-            subtitle=current_hand.game.table.name, 
-            category=push_categories.I_WON_HAND, 
-            extra_data={
-                "table_id": current_hand.game.table.id,
-                "game_id": current_hand.game.id,
-            },
-        )
+        if table_member.notification_settings.i_won_hand:
+            formatted_number = locale.currency(winner['net_gain'], grouping=True)
+            push_notifications.send_push(
+                to_user=table_member.user, 
+                text="You made " + formatted_number + ".", 
+                title="You won the hand", 
+                subtitle=current_hand.game.table.name, 
+                category=push_categories.I_WON_HAND, 
+                extra_data={
+                    "table_id": str(current_hand.game.table.id),
+                    "no_limit_hold_em_game_id": str(current_hand.game.id),
+                    "no_limit_hold_em_hand_id": str(current_hand.id),
+                },
+                thread_id=push_categories.game_thread_id(current_hand.game.id),
+            )
     losers = hand_json_helpers.get_players_with_net_loss(hand_json=hand_json)
     for loser in losers:
-        user = get_object_or_404(
-            User,
-            pk=loser['player_id'],
+        table_member = table_member_fetchers.get_table_member(
+            user_id=winner['player_id'],
+            table_id=current_hand.game.table.id,
         )
-        formatted_number = locale.currency(loser['net_loss'], grouping=True)
-        push_notifications.send_push(
-            to_user=user, 
-            text="You lost " + formatted_number + ".", 
-            title="You lost the hand", 
-            subtitle=current_hand.game.table.name, 
-            category=push_categories.I_LOST_HAND, 
-            extra_data={
-                "table_id": current_hand.game.table.id,
-                "game_id": current_hand.game.id,
-            },
-        )
+        if table_member.notification_settings.i_lost_hand:
+            formatted_number = locale.currency(loser['net_loss'], grouping=True)
+            push_notifications.send_push(
+                to_user=table_member.user, 
+                text="You lost " + formatted_number + ".", 
+                title="You lost the hand", 
+                subtitle=current_hand.game.table.name, 
+                category=push_categories.I_LOST_HAND, 
+                extra_data={
+                    "table_id": str(current_hand.game.table.id),
+                    "no_limit_hold_em_game_id": str(current_hand.game.id),
+                    "no_limit_hold_em_hand_id": str(current_hand.id),
+                },
+                thread_id=push_categories.game_thread_id(current_hand.game.id),
+            )

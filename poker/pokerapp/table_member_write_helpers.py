@@ -36,7 +36,9 @@ def join_table(user, table_id, permissions):
         category=push_categories.NEW_MEMBER_JOINED,
         extra_data={
             "table_id": table_id,
+            "user_id": str(table_member.user.id),
         },
+        thread_id=push_categories.chat_room_id(table_id),
     )
     return table_member
 
@@ -56,10 +58,11 @@ def remove_table_member(table_member, removed_by):
         push_notifications.send_push(
             to_user=table_member.user,
             text=removed_by.username + " removed you.",
-            title="Removed from the table",
+            title="You've been removed from the table.",
             subtitle=table_member.table.name,
             category=push_categories.I_WAS_REMOVED_FROM_TABLE,
             extra_data={
-                "table_id": table_member.table.id,
+                "table_id": str(table_member.table.id),
             },
+            thread_id=push_categories.chat_room_id(table_member.table.id),
         )

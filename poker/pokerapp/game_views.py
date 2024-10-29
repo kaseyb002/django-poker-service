@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from . import table_member_fetchers 
 from . import responses
 from . import table_member_write_helpers
-from django.db.models import Subquery, OuterRef
+from django.db.models import Subquery, OuterRef, Count
 from django.shortcuts import get_object_or_404
 
 class CurrentGameRetrieveView(generics.RetrieveAPIView):
@@ -36,54 +36,57 @@ class CurrentGameListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     
     def list(self, request, *args, **kwargs):
-
-        # Subquery to get the latest hand per table
-        latest_hand_per_table = NoLimitHoldEmHand.objects.filter(
-            game__table=OuterRef('game__table'),
-            game__table__members__is_deleted=False,
-            game__table__members__user__id=request.user.id,
-        ).order_by('-updated').values('id')[:1]
-
-        hands = NoLimitHoldEmHand.objects.filter(
-            id__in=Subquery(latest_hand_per_table)
-        ).prefetch_related(
-            'game',
-            'game__table',
+        current_games = CurrentGame.objects.filter(
+            table__members__user__id=request.user.id,
+        ).exclude(
+            table__members__is_deleted=True,
         )
-        # hands = NoLimitHoldEmHand.objects.filter(
-        #     game__table__members__is_deleted=False,
-        #     game__table__members__user__id=request.user.id,
-        # ).order_by(
-        #     'game__table',  # This must be included in order_by for distinct to work
-        #     '-updated',
-        # ).distinct(
-        #     'game__table',
-        # ).prefetch_related(
-        #     'current_game',
-        #     'current_game__no_limit_hold_em_game',
-        #     'current_game__table',
-        # )
+        page = self.paginate_queryset(current_games)
 
-        # for other games, you'd need to similarly fetch for the current 
-        # game state, and then 
+        # find hold em hands
+        no_limit_hold_em_game_ids = [current_game.no_limit_hold_em_game.id for current_game in page]
+        hands = NoLimitHoldEmHand.objects.filter(
+            game__id__in=no_limit_hold_em_game_ids,
+            completed__isnull=True,
+        )
+        hands_dict = {}
+        for hand in hands:
+            hands_dict[hand.game.id] = hand
+            
+        # find sitting players
+        sitting_players = NoLimitHoldEmGamePlayer.objects.filter(
+            game__id__in=no_limit_hold_em_game_ids,
+            is_sitting=True,
+        ).prefetch_related('table_member__user')
+        no_limit_hold_em_players_dict = {}
+        for player in sitting_players:
+            if player.game.id not in no_limit_hold_em_players_dict:
+                no_limit_hold_em_players_dict[player.game.id] = []
+            no_limit_hold_em_players_dict[player.game.id].append(player)
+        
+        # find other game types (ie, stage 10 round)
 
-        class GameListSerializer(serializers.ModelSerializer):
-            table = TableSerializer(source='game.table', read_only=True)
-            game = NoLimitHoldEmGameSerializer(read_only=True)
 
-            class Meta:
-                model = NoLimitHoldEmHand
-                fields = [
-                    'id', 
-                    'game',
-                    'created', 
-                    'updated', 
-                    'hand_json', 
-                    'completed',
-                    'players',
-                    'table', 
-                ]
+        # make full games list
+        games = []
+        for game in page:
+            game_serializer = CurrentGameSerializer(game, context={'request': request})
+            games.append({
+                'game': game_serializer.data,
+            })
 
-        page = self.paginate_queryset(hands)
-        serializer = GameListSerializer(page, many=True, context={'request': request})
-        return self.get_paginated_response(serializer.data)
+            # add hold em hands
+            if game.no_limit_hold_em_game.id in hands_dict:
+                hand = hands_dict[game.no_limit_hold_em_game.id]
+                hand_serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+                games[-1]['game']['no_limit_hold_em_hand'] = hand_serializer.data
+
+            # add hold em players
+            if game.no_limit_hold_em_game.id in no_limit_hold_em_players_dict:
+                players = no_limit_hold_em_players_dict[game.no_limit_hold_em_game.id]
+                players_serializer = NoLimitHoldEmGamePlayerSerializer(players, many=True, context={'request': request})
+                games[-1]['game']['no_limit_hold_em_players'] = players_serializer.data
+
+            # add other game data as needed
+
+        return self.get_paginated_response(games)

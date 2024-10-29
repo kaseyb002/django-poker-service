@@ -8,3 +8,12 @@ IS_MY_TURN = "IS_MY_TURN"
 NEW_CHAT_MESSAGE = "NEW_CHAT_MESSAGE"
 I_LOST_HAND = "I_LOST_HAND"
 I_WON_HAND = "I_WON_HAND"
+
+def chat_room_id(table_id):
+    return f"table_{table_id}"
+
+def game_thread_id(game_id):
+    return f"game_{game_id}"
+
+def game_collapse_id(game_id):
+    return f"game_{game_id}"

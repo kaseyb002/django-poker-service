@@ -158,6 +158,8 @@ class NoLimitHoldEmChipAdjustment(models.Model):
 class CurrentGame(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
+    last_move = models.DateTimeField(auto_now_add=True)
+    members_turn = models.ForeignKey(TableMember, related_name='turns', on_delete=models.CASCADE, null=True)
     NO_LIMIT_HOLD_EM = 'NO_LIMIT_HOLD_EM'
     GAME_CHOICES = [
         (NO_LIMIT_HOLD_EM, 'No Limit Hold Em'),
@@ -177,6 +179,15 @@ class CurrentGame(models.Model):
         on_delete=models.SET_NULL,
         null=True,
     )
+
+    def users_turn(self):
+        if self.members_turn:
+            return self.members_turn.user.id
+        else:
+            return None
+
+    class Meta:
+        ordering = ['-last_move']
 
 class ChatRoom(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

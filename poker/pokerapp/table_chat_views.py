@@ -95,13 +95,15 @@ class TableChatMessageListView(generics.ListCreateAPIView):
         )
         push_notifications.send_push_to_users(
             users=subscribed_users,
-            text=chat_message.text,
+            text="Message from " + chat_message.text,
             title=my_table_member.user.username,
             subtitle=my_table_member.table.name,
             category=push_categories.NEW_CHAT_MESSAGE,
             extra_data={
                 "table_id": table_pk,
+                "message_id": str(chat_message.id),
             },
+            thread_id=push_categories.chat_room_id(table_pk),
         )
         serializer = ChatMessageSerializer(chat_message, context={'request': request})
         return Response(serializer.data)

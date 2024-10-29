@@ -306,7 +306,6 @@ def sit_player_out(request, *args, **kwargs):
     """
     Sit another player out of hold em game
     """
-    print("made it this far")
     game_pk = kwargs.get('game_pk')
     user_pk = kwargs.get('user_pk')
     player = no_limit_hold_em_game_fetchers.get_or_make_game_player(
@@ -321,20 +320,20 @@ def sit_player_out(request, *args, **kwargs):
         return responses.unauthorized("User does not have permission to sit players out.")
     player.is_sitting = False
     player.save()
-    print("made it this far")
     
     if player.table_member.notification_settings.i_was_sat_out:
-        print("made it this far")
         push_notifications.send_push(
             to_user=player.table_member.user,
             text=request.user.username + " sat you out of the game. Sit down again to keep playing.",
             title="You were sat out.",
             subtitle=player.game.table.name,
             extra_data={
-                "game_id": player.game.id,
-                "table_id": player.game.table.id,
+                "no_limit_hold_em_game_id": str(player.game.id),
+                "table_id": str(player.game.table.id),
             },
             category=push_categories.I_WAS_SAT_OUT,
+            thread_id=push_categories.game_thread_id(player.game.id),
+            collapse_id=push_categories.game_collapse_id(player.game.id),
         )
 
     serializer = NoLimitHoldEmGamePlayerSerializer(player, context={'request': request})
@@ -417,10 +416,11 @@ def add_chips(request, *args, **kwargs):
             title=title,
             subtitle=subtitle,
             extra_data={
-                "game_id": player.game.id,
-                "table_id": player.game.table.id,
+                "no_limit_hold_em_game_id": str(player.game.id),
+                "table_id": str(player.game.table.id),
             },
             category=push_categories.MY_CHIPS_ADJUSTED,
+            thread_id=push_categories.game_thread_id(player.game.id),
         )
 
     serializer = NoLimitHoldEmGamePlayerSerializer(player, context={'request': request})

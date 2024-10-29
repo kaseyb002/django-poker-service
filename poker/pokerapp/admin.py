@@ -107,3 +107,13 @@ class TableNotificationSettingsAdmin(admin.ModelAdmin):
     list_display = ('id',)
 
 admin.site.register(TableNotificationSettings, TableNotificationSettingsAdmin)
+
+class PushNotificationRegistrationAdmin(admin.ModelAdmin):
+    list_display = ('id',)
+
+admin.site.register(PushNotificationRegistration, PushNotificationRegistrationAdmin)
+
+class CurrentGameAdmin(admin.ModelAdmin):
+    list_display = ('id',)
+
+admin.site.register(CurrentGame, CurrentGameAdmin)
