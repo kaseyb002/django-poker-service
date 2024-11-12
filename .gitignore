@@ -6,3 +6,4 @@ podtalk.sock
 db.sqlite3
 #/static
 .DS_Store
+firebase-auth.json
