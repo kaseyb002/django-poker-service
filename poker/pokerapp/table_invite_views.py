@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from . import table_member_fetchers 
 from . import responses
 from . import table_member_write_helpers
+import shortuuid
 
 @api_view(['POST'])
 def join_table(request):
@@ -90,6 +91,7 @@ class TableInviteListView(generics.ListCreateAPIView):
         invite = TableInvite.objects.create(
             created_by=request.user,
             table=table_member.table,
+            code=shortuuid.uuid(),
         )
         serializer = TableInviteSerializer(invite, context={'request': request})
         return Response(serializer.data)

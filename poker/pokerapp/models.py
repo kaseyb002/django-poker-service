@@ -68,7 +68,7 @@ class TableInvite(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_by = models.ForeignKey('auth.User', related_name='created_invites', on_delete=models.SET_NULL, null=True)
     table = models.ForeignKey(Table, related_name='invites', on_delete=models.CASCADE)
-    code = models.CharField(max_length=22, unique=True, editable=False, default=shortuuid.uuid)
+    code = models.CharField(max_length=22, unique=True, editable=False)
     is_one_time = models.BooleanField(default=True)
     used_by = models.ForeignKey('auth.User', related_name='used_invites', on_delete=models.SET_NULL, null=True)
 
