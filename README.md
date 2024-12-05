@@ -23,11 +23,6 @@ sudo systemctl restart nginx
 rm -f db.sqlite3 && rm -r pokerapp/migrations && python manage.py makemigrations pokerapp && python manage.py migrate
 ```
 
-## bump swap file to 2 gig
-```
-sudo mount -o remount,size=2G /tmp
-```
-
 ## vapor
 ```
 sudo vim /etc/supervisor/conf.d/poker.conf # configure
