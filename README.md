@@ -39,9 +39,14 @@ sudo mount -o remount,size=2G /tmp
 ```
 
 ## redis
-`sudo systemctl restart redis.service`
+```
+sudo nano /etc/redis/redis.conf # config redis
+sudo systemctl restart redis.service # restart redis
+sudo systemctl status redis # status
+redis-cli # command line for redis, try `set test "pee"`; `get test`
+```
 
-`swiftly install latest` can freeze up your machine. You'll need to turn off the Droplet via the digital ocean toggle GUI. 
+I did not enable a password for the redis box yet.
 
 ## Something about Firebase Push Notiifcations
 ```
