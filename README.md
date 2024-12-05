@@ -1,13 +1,7 @@
 # Helpful snippets
 
-## Guides I used
-- [Setup Redis](https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-22-04)
-- [Setup Django, Nginx, Postgres, Gunicorn](https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-ubuntu)
-- [Setup Vapor](https://docs.vapor.codes/deploy/digital-ocean/)
-
-There was some other guide I had to use to setup Vunicorn for the async (ASGI) stuff. I think I ended up using the Gunicorn guide, but just replaced `gunicorn` with `vunicorn` everywhere.
-
 ## Django service helpful things
+- [Setup Django, Nginx, Postgres, Gunicorn](https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-ubuntu)
 ```
 sudo systemctl restart gunicorn
 sudo systemctl start gunicorn.socket
@@ -18,12 +12,15 @@ sudo systemctl status nginx
 sudo systemctl restart nginx
 ```
 
+There was some other guide I had to use to setup Vunicorn for the async (ASGI) stuff. I think I ended up using the Gunicorn guide, but just replaced `gunicorn` with `vunicorn` everywhere.
+
 #### Wipe and restart database
 ```
 rm -f db.sqlite3 && rm -r pokerapp/migrations && python manage.py makemigrations pokerapp && python manage.py migrate
 ```
 
 ## vapor
+- [Setup Vapor](https://docs.vapor.codes/deploy/digital-ocean/)
 ```
 sudo vim /etc/supervisor/conf.d/poker.conf # configure
 sudo supervisorctl reread # reloads it?
@@ -39,6 +36,9 @@ sudo mount -o remount,size=2G /tmp
 ```
 
 ## redis
+- [Setup Redis](https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-22-04)
+- [Guide I used for setting up Django Channels](https://channels.readthedocs.io/en/latest/tutorial/part_2.html)
+
 ```
 sudo nano /etc/redis/redis.conf # config redis
 sudo systemctl restart redis.service # restart redis
