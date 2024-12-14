@@ -23,7 +23,7 @@ cd ~/django-poker-service/
 git pull origin main
 source env/bin/activate
 python poker/manage.py migrate
-sudo systemctl status gunicorn
+sudo systemctl restart gunicorn
 quit
 ```
 
