@@ -8,11 +8,24 @@ sudo systemctl start gunicorn.socket
 
 sudo systemctl status gunicorn
 
+sudo nginx -t
 sudo systemctl status nginx
+sudo systemctl reload nginx
 sudo systemctl restart nginx
 ```
 
-There was some other guide I had to use to setup Vunicorn for the async (ASGI) stuff. I think I ended up using the Gunicorn guide, but just replaced `gunicorn` with `vunicorn` everywhere.
+There was some other guide I had to use to setup Vunicorn for the async (ASGI) stuff. I think I ended up using the Gunicorn guide, but just replaced `gunicorn` with `vunicorn` 
+everywhere.
+
+#### Deploy new Django changes
+```
+cd ~/django-poker-service/
+git pull origin main
+source env/bin/activate
+python poker/manage.py migrate
+sudo systemctl status gunicorn
+quit
+```
 
 #### Wipe and restart database
 ```
@@ -27,7 +40,15 @@ sudo supervisorctl reread # reloads it?
 sudo supervisorctl add poker ## ??
 sudo supervisorctl update # ?? 
 sudo supervisorctl start poker # start vapor poker service
-curl http://127.0.0.1:8080 # test
+sudo supervisorctl restart poker
+curl http://127.0.0.1:8080 # test, should give you an json-formatted not found error
+```
+
+#### Deploy new Vapor changes
+```
+cd ~/vapor-poker-service/
+swift package update
+sudo supervisorctl start poker
 ```
 
 `swiftly install latest` breaks on a 1Gb RAM machine. So I had to upgrade to 2Gb. You can try increasing the swap file size, but I doubt it will work. 

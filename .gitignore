@@ -1,9 +1,13 @@
 *.pyc
+*.pyo
 *.swp
 *~
 env
+env/
 podtalk.sock
 db.sqlite3
 #/static
 .DS_Store
 firebase-auth.json
+poker/__pycache__/
+pokerapp/__pycache__/
