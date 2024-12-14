@@ -346,9 +346,11 @@ def add_chips(request, *args, **kwargs):
     """
     class Serializer(serializers.Serializer):
         amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+        notes = serializers.CharField(required=False)
     serializer = Serializer(data=request.data, context={'request': request})
     serializer.is_valid(raise_exception=True)
     amount = Decimal(serializer.data['amount'])
+    notes = serializer.data.get('notes', '')
 
     game_pk = kwargs.get('game_pk')
     user_pk = kwargs.get('user_pk')
@@ -396,6 +398,7 @@ def add_chips(request, *args, **kwargs):
         adjusted_by=my_table_member,
         amount=bounded_amount,
         summary_statement=summary_statement,
+        notes=notes,
     )
     adjustment.save()
 

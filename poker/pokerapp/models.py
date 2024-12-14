@@ -1,5 +1,4 @@
 import uuid
-import shortuuid
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -66,6 +65,7 @@ class TableNotificationSettings(models.Model):
 
 class TableInvite(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey('auth.User', related_name='created_invites', on_delete=models.SET_NULL, null=True)
     table = models.ForeignKey(Table, related_name='invites', on_delete=models.CASCADE)
     code = models.CharField(max_length=22, unique=True, editable=False)
@@ -151,6 +151,7 @@ class NoLimitHoldEmChipAdjustment(models.Model):
     adjusted_by = models.ForeignKey(TableMember, related_name='chip_adjustments', on_delete=models.SET_NULL, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=10.00)
     summary_statement = models.CharField(max_length=1024, blank=False)
+    notes = models.CharField(max_length=1024, blank=True)
 
     class Meta:
         ordering = ['-created']

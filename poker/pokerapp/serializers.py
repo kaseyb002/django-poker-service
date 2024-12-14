@@ -217,6 +217,7 @@ class NoLimitHoldEmChipAdjustmentSerializer(serializers.ModelSerializer):
             'player',
             'amount', 
             'summary_statement', 
+            'notes', 
         ]
 
 class CurrentGameSerializer(serializers.ModelSerializer):

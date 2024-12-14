@@ -97,6 +97,7 @@ def deal_new_hand(game):
     }
     hand_json = send_request('deal', data)
     # save hand
+    print(hand_json)
     hand = NoLimitHoldEmHand.objects.create(
         game=game,
         hand_json=hand_json,
@@ -433,7 +434,7 @@ def notify_big_pot_subscribers(current_hand):
         if table_member.notification_settings.big_pot:
             push_notifications.send_push_to_users(
                 users=subscribed_users,
-                text=table_member.username + " made " + str(max_net_gain) + ".",
+                text=table_member.username() + " made " + str(max_net_gain) + ".",
                 title="Big Pot", 
                 subtitle=table_member.table.name,
                 category=push_categories.BIG_POT,
