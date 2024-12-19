@@ -9,6 +9,7 @@ from . import table_member_fetchers
 from . import responses
 from . import table_member_write_helpers
 import shortuuid
+from django.shortcuts import get_object_or_404
 
 @api_view(['POST'])
 def join_table(request):
@@ -81,6 +82,11 @@ class TableInviteListView(generics.ListCreateAPIView):
         return self.get_paginated_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
+        class Serializer(serializers.Serializer):
+            is_one_time_code = serializers.BooleanField(required=False)
+        serializer = Serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        is_one_time_code = serializer.data.get('is_one_time_code', True)
         table_pk = self.kwargs.get('table_pk')
         table_member = table_member_fetchers.get_table_member(
             user_id=request.user.id, 
@@ -92,6 +98,29 @@ class TableInviteListView(generics.ListCreateAPIView):
             created_by=request.user,
             table=table_member.table,
             code=shortuuid.uuid(),
+            is_one_time=is_one_time_code,
         )
         serializer = TableInviteSerializer(invite, context={'request': request})
         return Response(serializer.data)
+
+class TableInviteRetrieveView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        invite_pk = self.kwargs.get('invite_pk')
+        invite = get_object_or_404(
+            TableInvite, 
+            pk=invite_pk
+        )
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=invite.table.id,
+        )
+        if not my_table_member:
+            return responses.unauthorized("User is not a member of this table.")
+        if my_table_member.user != invite.created_by:
+            return responses.unauthorized("User did not create this invite.")
+        if invite.used_by:
+            return responses.bad_request("Invite has already been used.")
+        invite.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

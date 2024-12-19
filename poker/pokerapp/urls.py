@@ -2,7 +2,7 @@ from django.urls import path, include
 from .table_views import TableListView, TableRetrieveView
 from .table_settings_views import TableSettingsRetrieveView
 from .table_member_views import MyTableMemberRetrieveView, TableMemberRetrieveView, TableMemberListView
-from .table_invite_views import TableInviteListView
+from .table_invite_views import TableInviteListView, TableInviteRetrieveView
 from .table_chat_views import TableChatMessageListView, TableChatMetadataRetrieveView
 from .table_member_permissions import TableMemberPermissionsUpdateView
 from .game_views import CurrentGameRetrieveView, CurrentGameListView
@@ -44,6 +44,7 @@ urlpatterns = [
     path('tables/join', table_invite_views.join_table, name='join-table'),
     path('tables/<uuid:table_pk>/leave', table_invite_views.leave_table, name='leave-table'),
     path('tables/<uuid:table_pk>/invites', TableInviteListView.as_view(), name='table-invites'),
+    path('invites/<uuid:invite_pk>', TableInviteRetrieveView.as_view(), name='table-invite'),
 
     # chat
     path('tables/<uuid:table_pk>/chat', TableChatMessageListView.as_view(), name='table-chat'),

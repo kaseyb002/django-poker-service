@@ -72,6 +72,19 @@ class TableInvite(models.Model):
     is_one_time = models.BooleanField(default=True)
     used_by = models.ForeignKey('auth.User', related_name='used_invites', on_delete=models.SET_NULL, null=True)
 
+    def used_by_username(self):
+        if self.used_by:
+            return self.used_by.username
+        return None
+
+    def used_by_image_url(self):
+        if self.used_by:
+            return self.used_by.account.image_url
+        return None
+
+    class Meta:
+        ordering = ['-created']
+
 class TableMember(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)

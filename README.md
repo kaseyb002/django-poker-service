@@ -3,19 +3,19 @@
 ## Django service helpful things
 - [Setup Django, Nginx, Postgres, Gunicorn](https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-ubuntu)
 
-I have both a gunicorn and a vunicorn server running. gunicorn is for REST calls while the vunicorn is for web sockets.
+I have both a gunicorn and a uvicorn server running. gunicorn is for REST calls while the uvicorn is for web sockets.
 ```
 sudo systemctl restart gunicorn
 sudo systemctl start gunicorn.socket
-sudo systemctl restart vunicorn
-sudo systemctl start vunicorn.socket
+sudo systemctl restart uvicorn
+sudo systemctl start uvicorn.socket
 
 sudo systemctl status gunicorn
-sudo systemctl status vunicorn
+sudo systemctl status uvicorn
 
 sudo vim /etc/nginx/sites-available/poker # config site
 sudo vim /etc/systemd/system/gunicorn.service
-sudo vim /etc/systemd/system/vunicorn.service
+sudo vim /etc/systemd/system/uvicorn.service
 
 sudo nginx -t
 sudo systemctl status nginx
@@ -23,19 +23,20 @@ sudo systemctl reload nginx
 sudo systemctl restart nginx
 ```
 
-There was some other guide I had to use to setup Vunicorn for the async (ASGI) stuff. I think I ended up using the Gunicorn guide, but just replaced `gunicorn` with `vunicorn` 
+There was some other guide I had to use to setup Uvicorn for the async (ASGI) stuff. I think I ended up using the Gunicorn guide, but just replaced `gunicorn` with `uvicorn` 
 everywhere.
 
 #### Deploy new Django changes
 ```
 cd ~/django-poker-service/
 git pull origin main
+rm -rf env/
 source env/bin/activate
 pip install -r requirements.txt
 python poker/manage.py migrate
 sudo systemctl restart gunicorn
-sudo systemctl restart vunicorn
-quit
+sudo systemctl restart uvicorn
+deactivate
 ```
 
 #### Wipe and restart local dev database
@@ -56,8 +57,10 @@ curl http://127.0.0.1:8080 # test, should give you an json-formatted not found e
 ```
 
 #### Deploy new Vapor changes
+I'm not sure if this below is quite right.
 ```
 cd ~/vapor-poker-service/
+git pull origin main
 swift package update
 sudo supervisorctl start poker
 ```

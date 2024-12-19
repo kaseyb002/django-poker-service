@@ -149,6 +149,8 @@ class TableInviteSerializer(serializers.ModelSerializer):
             'code',
             'is_one_time',
             'used_by',
+            'used_by_username',
+            'used_by_image_url',
         ]
 
 class TableMemberSerializer(serializers.ModelSerializer):
