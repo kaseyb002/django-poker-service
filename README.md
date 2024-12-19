@@ -2,13 +2,20 @@
 
 ## Django service helpful things
 - [Setup Django, Nginx, Postgres, Gunicorn](https://www.digitalocean.com/community/tutorials/how-to-set-up-django-with-postgres-nginx-and-gunicorn-on-ubuntu)
+
+I have both a gunicorn and a vunicorn server running. gunicorn is for REST calls while the vunicorn is for web sockets.
 ```
 sudo systemctl restart gunicorn
 sudo systemctl start gunicorn.socket
+sudo systemctl restart vunicorn
+sudo systemctl start vunicorn.socket
 
 sudo systemctl status gunicorn
+sudo systemctl status vunicorn
 
 sudo vim /etc/nginx/sites-available/poker # config site
+sudo vim /etc/systemd/system/gunicorn.service
+sudo vim /etc/systemd/system/vunicorn.service
 
 sudo nginx -t
 sudo systemctl status nginx
@@ -24,12 +31,14 @@ everywhere.
 cd ~/django-poker-service/
 git pull origin main
 source env/bin/activate
+pip install -r requirements.txt
 python poker/manage.py migrate
 sudo systemctl restart gunicorn
+sudo systemctl restart vunicorn
 quit
 ```
 
-#### Wipe and restart database
+#### Wipe and restart local dev database
 ```
 rm -f db.sqlite3 && rm -r pokerapp/migrations && python manage.py makemigrations pokerapp && python manage.py migrate
 ```
@@ -70,6 +79,12 @@ redis-cli # command line for redis, try `set test "pee"`; `get test`
 ```
 
 I did not enable a password for the redis box yet.
+
+On the Digital Ocean guide, it tells you to disable a bunch of commands. That ended up causing a problem for Django channels. I don't know which disabled command caused it, but once I reenabled all the commands in the redis config file, everything worked.
+
+```
+redis.exceptions.ResponseError: Unknown Redis command called from script script: 8d28fb4c84249684940e751f9f15170eb9a96e1a, on @user_script:6.
+```
 
 ## Something about Firebase Push Notiifcations
 ```

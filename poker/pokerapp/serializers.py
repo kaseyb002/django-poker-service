@@ -144,6 +144,7 @@ class TableInviteSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'table',
+            'created', 
             'created_by',
             'code',
             'is_one_time',
