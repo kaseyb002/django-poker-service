@@ -8,6 +8,8 @@ sudo systemctl start gunicorn.socket
 
 sudo systemctl status gunicorn
 
+sudo vim /etc/nginx/sites-available/poker # config site
+
 sudo nginx -t
 sudo systemctl status nginx
 sudo systemctl reload nginx
