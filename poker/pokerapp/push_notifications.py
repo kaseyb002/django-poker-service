@@ -56,7 +56,7 @@ def send_push_to_users(
             },
             payload=messaging.APNSPayload(
                 aps=messaging.Aps(
-                    alert=messaging.Alert(
+                    alert=messaging.ApsAlert(
                         title=title,
                         body=text,
                         subtitle=subtitle,
