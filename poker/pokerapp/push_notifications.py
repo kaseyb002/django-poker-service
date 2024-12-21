@@ -62,7 +62,7 @@ def send_push_to_users(
                         subtitle=subtitle,
                     ),
                     thread_id=thread_id,
-                    collapse_id=collapse_id,
+                    # collapse_id=collapse_id,
                     category=category,
                     custom_data=extra_data,
                     content_available=silent,
