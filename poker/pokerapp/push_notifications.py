@@ -48,26 +48,29 @@ def send_push_to_users(
         user__in=users
     )
     push_ids = push_registrations.values_list('push_id', flat=True)
+    headers = {
+        "apns-priority": "10",  # High priority for immediate delivery
+        "apns-expiration": "3600",  # Expiration time in seconds
+    }
+    if collapse_id:
+        headers["apns-collapse-id"] = collapse_id
+    payload = messaging.APNSPayload(
+        aps=messaging.Aps(
+            alert=messaging.ApsAlert(
+                title=title,
+                body=text,
+                subtitle=subtitle,
+            ),
+            thread_id=thread_id,
+            category=category,
+            custom_data=extra_data,
+            content_available=silent,
+        )
+    )
     for push_id in push_ids:
         apns_config = messaging.APNSConfig(
-            headers={
-                "apns-priority": "10",  # High priority for immediate delivery
-                "apns-expiration": "3600",  # Expiration time in seconds
-            },
-            payload=messaging.APNSPayload(
-                aps=messaging.Aps(
-                    alert=messaging.ApsAlert(
-                        title=title,
-                        body=text,
-                        subtitle=subtitle,
-                    ),
-                    thread_id=thread_id,
-                    # collapse_id=collapse_id,
-                    category=category,
-                    custom_data=extra_data,
-                    content_available=silent,
-                )
-            )
+            headers=headers,
+            payload=payload,
         )
         message = messaging.Message(
             apns=apns_config,
