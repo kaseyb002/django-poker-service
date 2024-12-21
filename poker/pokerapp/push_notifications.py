@@ -61,6 +61,7 @@ def send_push_to_users(
                 body=text,
                 subtitle=subtitle,
             ),
+            sound="default",
             thread_id=thread_id,
             category=category,
             custom_data=extra_data,
