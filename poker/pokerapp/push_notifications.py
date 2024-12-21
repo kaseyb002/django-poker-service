@@ -1,7 +1,7 @@
 from .models import *
-import requests
-import json
 from django.conf import settings
+import firebase_admin
+from firebase_admin import credentials, messaging
 
 def send_push(
     to_user, 
@@ -39,55 +39,42 @@ def send_push_to_users(
 ):
     if not users:
         return
+    # check if firebase_admin is already initialized
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(settings.FIREBASE_FILE_PATH)
+        firebase_admin.initialize_app(cred)
     #create array of push ids
     push_registrations = PushNotificationRegistration.objects.filter(
         user__in=users
     )
     push_ids = push_registrations.values_list('push_id', flat=True)
-    print(list(push_ids))
-    #start creating payload
     for push_id in push_ids:
-        data = {
-            'token': push_id,
-        }
-        data['apns'] = {}
-        data['apns']['payload'] = {}
-        data['apns']['payload']['aps'] = {}
-        data['apns']['payload']['aps']['alert'] = {}
-        data['apns']['payload']['aps']['alert']['body'] = text
-        if title:
-            data['apns']['payload']['aps']['alert']['title'] = title
-        if subtitle:
-            data['apns']['payload']['aps']['alert']['subtitle'] = subtitle
-        if category:
-            data['apns']['payload']['aps']['category'] = category
-        if thread_id:
-            data['apns']['payload']['aps']['thread-id'] = thread_id
-        if collapse_id:
-            data['apns']['payload']['aps']['collapse-id'] = collapse_id
-        if silent:
-            data['apns']['payload']['aps']['content-available'] = extra_data
-        if extra_data:
-            data['apns']['payload']['custom-data'] = extra_data
+        apns_config = messaging.APNSConfig(
+            headers={
+                "apns-priority": "10",  # High priority for immediate delivery
+                "apns-expiration": "3600",  # Expiration time in seconds
+            },
+            payload=messaging.APNSPayload(
+                aps=messaging.Aps(
+                    alert=messaging.Alert(
+                        title=title,
+                        body=text,
+                        subtitle=subtitle,
+                    ),
+                    thread_id=thread_id,
+                    collapse_id=collapse_id,
+                    category=category,
+                    custom_data=extra_data,
+                    content_available=silent,
+                )
+            )
+        )
+        message = messaging.Message(
+            apns=apns_config,
+            token=push_id,
+        ) 
         try:
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + get_access_token(),
-            }
-            print(headers)
-            url = "https://content-fcm.googleapis.com/v1/projects/" + str(settings.FIREBASE_SENDER_ID) + "/messages:send"
-            something = requests.post(url, data=json.dumps(data), headers=headers)
-            print(something.json())
+            response = messaging.send(message)
+            print(f"Successfully sent message: {response} for push_id: {push_id}")
         except Exception as ex:
-            print(ex)
-
-
-def get_access_token():
-    return "fake"
-"""
-    credentials = service_account.Credentials.from_service_account_file(
-        'service-account.json', scopes=SCOPES)
-  request = google.auth.transport.requests.Request()
-  credentials.refresh(request)
-  return credentials.token
-"""            
+            print(f"Error sending message: {ex} for push_id: {push_id}")

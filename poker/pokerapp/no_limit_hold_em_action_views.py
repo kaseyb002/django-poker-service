@@ -97,7 +97,6 @@ def deal_new_hand(game):
     }
     hand_json = send_request('deal', data)
     # save hand
-    print(hand_json)
     hand = NoLimitHoldEmHand.objects.create(
         game=game,
         hand_json=hand_json,

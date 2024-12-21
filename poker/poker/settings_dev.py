@@ -152,3 +152,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 FIREBASE_AUTH_KEY = "2f76089f7c9b0699e66f8a4cbb64d103454f9cdf"
 
 FIREBASE_SENDER_ID = 634815250148
+
+FIREBASE_FILE_PATH = "/Users/kpb/Downloads/pokerface-account-file.json"
