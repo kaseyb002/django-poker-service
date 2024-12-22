@@ -95,8 +95,8 @@ class TableChatMessageListView(generics.ListCreateAPIView):
         )
         push_notifications.send_push_to_users(
             users=subscribed_users,
-            text="Message from " + chat_message.text,
-            title=my_table_member.user.username,
+            text=chat_message.text,
+            title="Message from" + my_table_member.user.username,
             subtitle=my_table_member.table.name,
             category=push_categories.NEW_CHAT_MESSAGE,
             extra_data={
