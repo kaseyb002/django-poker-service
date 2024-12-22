@@ -100,7 +100,7 @@ class TableChatMessageListView(generics.ListCreateAPIView):
             subtitle=my_table_member.table.name,
             category=push_categories.NEW_CHAT_MESSAGE,
             extra_data={
-                "table_id": table_pk,
+                "table_id": str(table_pk),
                 "message_id": str(chat_message.id),
             },
             thread_id=push_categories.chat_room_id(table_pk),

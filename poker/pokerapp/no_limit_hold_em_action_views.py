@@ -468,6 +468,7 @@ def notify_winners_and_losers(current_hand):
                     "no_limit_hold_em_hand_id": str(current_hand.id),
                 },
                 thread_id=push_categories.game_thread_id(current_hand.game.id),
+                collapse_id=push_categories.game_collapse_id(current_hand.game.id),
             )
     losers = hand_json_helpers.get_players_with_net_loss(hand_json=hand_json)
     for loser in losers:
@@ -489,4 +490,5 @@ def notify_winners_and_losers(current_hand):
                     "no_limit_hold_em_hand_id": str(current_hand.id),
                 },
                 thread_id=push_categories.game_thread_id(current_hand.game.id),
+                collapse_id=push_categories.game_collapse_id(current_hand.game.id),
             )
