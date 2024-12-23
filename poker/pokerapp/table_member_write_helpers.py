@@ -1,11 +1,10 @@
-from .models import Table, TableMember, NoLimitHoldEmGamePlayer, TableNotificationSettings
+from .models import Table, TableMember, NoLimitHoldEmGamePlayer, TableNotificationSettings, TablePermissions
 from . import table_member_fetchers
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from . import push_categories, push_notifications, push_notifications_fetchers
 
 def join_table(user, table_id, permissions):
-    table_member = table_member_fetchers.get_table_member
     table_member = TableMember.objects.filter(
         user__id=user.id
     ).filter(
@@ -66,3 +65,21 @@ def remove_table_member(table_member, removed_by):
             },
             thread_id=push_categories.chat_room_id(table_member.table.id),
         )
+
+def join_table_on_sign_up(user):
+    table_member = TableMember.objects.filter(
+        user__id=user.id
+    ).first()
+    if not table_member:
+        table = Table.objects.filter(
+            join_table_on_sign_up=True
+        ).first()
+        if not table:
+            return None
+        member_permissions = TablePermissions.objects.create()
+        table_member = join_table(
+            user=user, 
+            table_id=table.id, 
+            permissions=member_permissions,
+        )
+    return table_member
