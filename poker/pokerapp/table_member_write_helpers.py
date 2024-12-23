@@ -72,7 +72,7 @@ def join_table_on_sign_up(user):
     ).first()
     if not table_member:
         table = Table.objects.filter(
-            join_table_on_sign_up=True
+            join_on_account_sign_up=True
         ).first()
         if not table:
             return None
