@@ -29,8 +29,7 @@ sudo tail -f /var/log/redis/redis-server.log
 sudo journalctl -u uvicorn.service --since "2024-12-19 03:27:38" --follow
 ```
 
-There was some other guide I had to use to setup Uvicorn for the async (ASGI) stuff. I think I ended up using the Gunicorn guide, but just replaced `gunicorn` with `uvicorn` 
-everywhere.
+There was some other guide I had to use to setup Uvicorn for the async (ASGI) stuff. I think I ended up using the Gunicorn guide, but just replaced `gunicorn` with `uvicorn` everywhere.
 
 #### Deploy new Django changes
 ```
@@ -45,6 +44,11 @@ python poker/manage.py migrate
 sudo systemctl restart gunicorn
 sudo systemctl restart uvicorn
 deactivate
+```
+
+#### Non-db or env Django changes deploy
+```
+git pull origin main && sudo systemctl restart gunicorn && sudo systemctl restart uvicorn
 ```
 
 #### Wipe and restart local dev database
