@@ -11,3 +11,4 @@ db.sqlite3
 firebase-auth.json
 poker/__pycache__/
 pokerapp/__pycache__/
+__pycache__/
