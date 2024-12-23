@@ -12,6 +12,7 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from . import responses
+from . import table_member_write_helpers
 
 @api_view(['POST'])
 def register(request):
@@ -23,7 +24,7 @@ def register(request):
     create_user_serializer = CreateUserSerializer(data=request.data, context={'request': request})
     create_user_serializer.is_valid(raise_exception=True)
     user = create_user_serializer.save()
-    # groups_helper.join_podtalk_general_group(user)
+    table_member_write_helpers.join_table_on_sign_up(user)
     user_serializer = UserSerializer(user, context={'request': request})
     token, created = Token.objects.get_or_create(user=user)
     return Response(

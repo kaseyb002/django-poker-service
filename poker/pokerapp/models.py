@@ -18,7 +18,10 @@ class Table(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey('auth.User', related_name='created_tables', on_delete=models.SET_NULL, null=True, editable=False)
     name = models.CharField(max_length=25, blank=False)
+    tagline = models.CharField(max_length=40, blank=True)
+    description = models.CharField(max_length=2000, blank=True)
     image_url = models.URLField(null=True, blank=True)
+    join_on_account_sign_up = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['created']
@@ -150,6 +153,7 @@ class NoLimitHoldEmHand(models.Model):
     completed = models.DateTimeField(null=True)
     players = models.ManyToManyField(NoLimitHoldEmGamePlayer)
     hand_json = models.JSONField(null=False, blank=False)
+    hand_number = models.BigIntegerField(unique=True, null=True)
 
     def is_completed(self):
         return not self.completed
