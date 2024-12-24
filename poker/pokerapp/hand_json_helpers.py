@@ -63,6 +63,11 @@ def get_players_with_net_gain(hand_json):
         status = player_hand.get('status')
         
         net_gain = current_chip_count - starting_chip_count
+        # print("player_hand: ", player_hand.get('player').get('name'))
+        # print("status: ", status)
+        # print("starting_chip_count: ", starting_chip_count)
+        # print("current_chip_count: ", current_chip_count)
+        # print("net_gain: ", net_gain)
 
         # If the net gain is positive, add the player to the result list
         if net_gain > 0 and status == 'in':
@@ -72,6 +77,7 @@ def get_players_with_net_gain(hand_json):
                 "net_gain": net_gain
             })
 
+    # print("players_with_net_gain: ", players_with_net_gain)
     return players_with_net_gain
 
 def get_players_with_net_loss(hand_json):
@@ -84,6 +90,11 @@ def get_players_with_net_loss(hand_json):
         status = player_hand.get('status')
         
         net_gain = current_chip_count - starting_chip_count
+        # print("player_hand: ", player_hand.get('player').get('name'))
+        # print("status: ", status)
+        # print("starting_chip_count: ", starting_chip_count)
+        # print("current_chip_count: ", current_chip_count)
+        # print("net_gain: ", net_gain)
 
         # If the net gain is negative, add the player to the result list
         if net_gain < 0 and status == 'in':
@@ -93,6 +104,7 @@ def get_players_with_net_loss(hand_json):
                 "net_loss": abs(net_gain)
             })
 
+    # print("players_with_net_loss: ", players_with_net_loss)
     return players_with_net_loss
 
 def calculate_total_pot_amount(hand_json):

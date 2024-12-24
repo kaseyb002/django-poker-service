@@ -151,6 +151,8 @@ class TableInviteSerializer(serializers.ModelSerializer):
             'used_by',
             'used_by_username',
             'used_by_image_url',
+            'tagline',
+            'description',
         ]
 
 class TableMemberSerializer(serializers.ModelSerializer):
