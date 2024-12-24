@@ -3,7 +3,7 @@ from .serializers import *
 from .pagination import NumberOnlyPagination
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from . import table_member_fetchers
 from . import responses
@@ -107,3 +107,28 @@ class TableChatMessageListView(generics.ListCreateAPIView):
         )
         serializer = ChatMessageSerializer(chat_message, context={'request': request})
         return Response(serializer.data)
+
+class TableChatMessageDetailView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        table_pk = self.kwargs.get('table_pk')
+        message_pk = self.kwargs.get('message_pk')
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=table_pk,
+        )
+        if not my_table_member:
+            return responses.user_not_in_table()
+        chat_message = get_object_or_404(
+            ChatMessage,
+            pk=message_pk,
+        )
+        if chat_message.user != request.user:
+            return responses.unauthorized("User did not create this message.")
+        chat_message.is_deleted = True
+        chat_message.save()
+        return Response(
+            {},
+            status=status.HTTP_204_NO_CONTENT,
+        )

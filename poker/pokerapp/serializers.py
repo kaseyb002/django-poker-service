@@ -94,6 +94,8 @@ class TableSerializer(serializers.ModelSerializer):
             'created', 
             'name', 
             'image_url',
+            'tagline',
+            'description',
         ]
 
 class TableSettingsSerializer(serializers.ModelSerializer):
@@ -151,8 +153,6 @@ class TableInviteSerializer(serializers.ModelSerializer):
             'used_by',
             'used_by_username',
             'used_by_image_url',
-            'tagline',
-            'description',
         ]
 
 class TableMemberSerializer(serializers.ModelSerializer):

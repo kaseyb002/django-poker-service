@@ -3,7 +3,7 @@ from .table_views import TableListView, TableRetrieveView
 from .table_settings_views import TableSettingsRetrieveView
 from .table_member_views import MyTableMemberRetrieveView, TableMemberRetrieveView, TableMemberListView
 from .table_invite_views import TableInviteListView, TableInviteRetrieveView
-from .table_chat_views import TableChatMessageListView, TableChatMetadataRetrieveView
+from .table_chat_views import TableChatMessageListView, TableChatMetadataRetrieveView, TableChatMessageDetailView
 from .table_member_permissions import TableMemberPermissionsUpdateView
 from .game_views import CurrentGameRetrieveView, CurrentGameListView
 from . import table_invite_views, user_views, no_limit_hold_em_views, no_limit_hold_em_action_views
@@ -49,6 +49,7 @@ urlpatterns = [
     # chat
     path('tables/<uuid:table_pk>/chat', TableChatMessageListView.as_view(), name='table-chat'),
     path('tables/<uuid:table_pk>/chat/metadata', TableChatMetadataRetrieveView.as_view(), name='table-chat-metadata'),
+    path('tables/<uuid:table_pk>/chat/messages/<uuid:message_pk>', TableChatMessageDetailView.as_view(), name='table-chat-message'),
 
     # no limit hold em
     path('no_limit_hold_em_games/<uuid:game_pk>', HoldEmGameRetrieveView.as_view(), name='hold_em_game'),
