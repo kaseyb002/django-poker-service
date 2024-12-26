@@ -12,6 +12,7 @@ from . import responses
 from . import table_member_write_helpers
 from django.db.models import Subquery, OuterRef, Count
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 class CurrentGameRetrieveView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
@@ -31,7 +32,7 @@ class CurrentGameRetrieveView(generics.RetrieveAPIView):
         serializer = CurrentGameSerializer(current_game, context={'request': request})
         return Response(serializer.data)
 
-class CurrentGameListView(generics.ListAPIView):
+class CurrentGameListView(generics.ListCreateAPIView):
     pagination_class = NumberOnlyPagination
     permission_classes = [IsAuthenticated]
     
@@ -90,3 +91,47 @@ class CurrentGameListView(generics.ListAPIView):
             # add other game data as needed
 
         return self.get_paginated_response(games)
+
+    def create(self, request, *args, **kwargs):
+        class Serializer(serializers.Serializer):
+            game_type = serializers.ChoiceField(choices=GameType.choices)
+        serializer = Serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        table_pk = self.kwargs.get('table_pk')
+        game_type = serializer.validated_data['game_type']
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=table_pk,
+        )
+        if not my_table_member:
+            return responses.user_not_in_table()
+        if not my_table_member.permissions.can_edit_settings:
+            return responses.unauthorized("User cannot create games")
+        game = create_game(table_pk, game_type)
+        serializer = CurrentGameSerializer(game, context={'request': request})
+        return Response(serializer.data)
+
+def create_game(table_id, game_type):
+    table = Table.objects.get(id=table_id)
+    current_game = CurrentGame.objects.filter(
+        table=table,
+    ).first()
+    game = None
+    match game_type:
+        case GameType.NO_LIMIT_HOLD_EM:
+            game = NoLimitHoldEmGame.objects.create(
+                table=table,
+            )
+            if not current_game:
+                current_game = CurrentGame.objects.create(
+                    table=table,
+                    no_limit_hold_em_game=game,
+                )
+            current_game.no_limit_hold_em_game = game
+        case _:
+            raise Exception("Invalid game type")
+    current_game.last_move = timezone.now()
+    current_game.members_turn = None
+    current_game.selected_game = game_type
+    current_game.save()
+    return current_game

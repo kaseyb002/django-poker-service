@@ -7,7 +7,7 @@ from .table_chat_views import TableChatMessageListView, TableChatMetadataRetriev
 from .table_member_permissions import TableMemberPermissionsUpdateView
 from .game_views import CurrentGameRetrieveView, CurrentGameListView
 from . import table_invite_views, user_views, no_limit_hold_em_views, no_limit_hold_em_action_views
-from .no_limit_hold_em_views import PlayerListView, SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView, NoLimitHoldEmHandListView, NoLimitHoldEmHandRetrieveView
+from .no_limit_hold_em_views import PlayerListView, SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView, NoLimitHoldEmHandListView, NoLimitHoldEmHandRetrieveView, SelectHoldEmGameUpdateView
 from .no_limit_hold_em_adjustment_views import NoLimitHoldChipAdjustmentListView
 from .table_notification_settings_views import TableNotificationSettingsRetrieveView
 
@@ -31,6 +31,7 @@ urlpatterns = [
     path('tables/<uuid:table_pk>/current_game', CurrentGameRetrieveView.as_view(), name='current-game'),
     path('tables/<uuid:table_pk>/current_game/no_limit_hold_em', CurrentHoldEmGameRetrieveView.as_view(), name='current-hold-em-game'),
     path('tables/<uuid:table_pk>/current_game/no_limit_hold_em/current_hand', CurrentHoldEmHandRetrieveView.as_view(), name='current-hold-em-hand'),
+    path('tables/<uuid:table_pk>/new_game', CurrentGameListView.as_view(), name='new-game'),
 
     # members
     path('tables/<uuid:table_pk>/members', TableMemberListView.as_view(), name='table-members'),
@@ -53,6 +54,7 @@ urlpatterns = [
 
     # no limit hold em
     path('no_limit_hold_em_games/<uuid:game_pk>', HoldEmGameRetrieveView.as_view(), name='hold_em_game'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/select', SelectHoldEmGameUpdateView.as_view(), name='select_hold_em_game'),
     path('no_limit_hold_em_games/<uuid:game_pk>/current_hand', CurrentHoldEmHandRetrieveView.as_view(), name='current_hold_em_game'),
     path('no_limit_hold_em_games/<uuid:game_pk>/sit', no_limit_hold_em_views.sit, name='hold_em_sit'),
     path('no_limit_hold_em_games/<uuid:game_pk>/sit_out', no_limit_hold_em_views.sit_out, name='hold_em_sit_out'),

@@ -14,6 +14,8 @@ from . import responses
 from . import table_member_write_helpers
 from . import push_notifications, push_categories
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from . import hand_json_helpers
 
 NO_LIMIT_HOLD_EM_MAX_SITTING_PLAYERS = 10
 
@@ -76,6 +78,50 @@ class CurrentHoldEmGameRetrieveView(generics.RetrieveAPIView):
             return responses.not_found("Game not found.")
         serializer = NoLimitHoldEmGameSerializer(game, context={'request': request})
         return Response(serializer.data)
+
+class SelectHoldEmGameUpdateView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def update(self, request, *args, **kwargs):
+        game_pk = self.kwargs.get('game_pk')
+        game = get_object_or_404(
+            NoLimitHoldEmGame,
+            pk=game_pk,
+        )
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=game.table.id,
+        )
+        if not my_table_member:
+            return responses.unauthorized("User is not a member of this table.")
+        if not my_table_member.permissions.can_edit_settings:
+            return responses.unauthorized("User cannot change games")
+        current_game = get_object_or_404(
+            CurrentGame,
+            table__id=game.table.id,
+        )
+        current_game.no_limit_hold_em_game = game
+        current_game.last_move = timezone.now()
+        current_game.selected_game = GameType.NO_LIMIT_HOLD_EM
+        hand = NoLimitHoldEmHand.objects.filter(
+            game__pk=game.id
+        ).first()
+        if game.current_hand:
+            current_player_id = hand_json_helpers.current_player_user_id(hand_json=hand.hand_json)
+            if current_player_id:
+                current_player = get_object_or_404(
+                    NoLimitHoldEmGamePlayer,
+                    game__pk=game.id,
+                    table_member__user__id=current_player_id,
+                )
+                current_game.members_turn = current_player.table_member
+            else:
+                current_game.members_turn = None
+        else:
+            current_game.members_turn = None
+        current_game.save()
+        serializer = CurrentGameSerializer(current_game, context={'request': request})
+        return Response(serializer.data) 
 
 class CurrentHoldEmHandRetrieveView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]

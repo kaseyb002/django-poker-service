@@ -252,4 +252,5 @@ class ChatMessageSerializer(serializers.ModelSerializer):
             'text',
             'username',
             'image_url',
+            'is_deleted',
         ]

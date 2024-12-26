@@ -1,6 +1,7 @@
 import uuid
 from django.contrib.auth.models import User
 from django.db import models
+from enum import Enum
 
 class Account(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -172,20 +173,18 @@ class NoLimitHoldEmChipAdjustment(models.Model):
 
     class Meta:
         ordering = ['-created']
+
+class GameType(models.TextChoices):
+    NO_LIMIT_HOLD_EM = 'NO_LIMIT_HOLD_EM', 'No Limit Hold Em'
  
 class CurrentGame(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
-    last_move = models.DateTimeField(auto_now_add=True)
+    last_move = models.DateTimeField(auto_now=True)
     members_turn = models.ForeignKey(TableMember, related_name='turns', on_delete=models.CASCADE, null=True)
-    NO_LIMIT_HOLD_EM = 'NO_LIMIT_HOLD_EM'
-    GAME_CHOICES = [
-        (NO_LIMIT_HOLD_EM, 'No Limit Hold Em'),
-    ]
     selected_game = models.CharField(
-        max_length=20,
-        choices=GAME_CHOICES,
-        default=NO_LIMIT_HOLD_EM,
+        max_length=40,
+        choices=GameType.choices,
     )
     table = models.OneToOneField(
         Table,
