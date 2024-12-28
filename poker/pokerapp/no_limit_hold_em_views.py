@@ -76,6 +76,7 @@ class HoldEmGameListView(generics.ListAPIView):
         # Annotate NoLimitHoldEmGame with the latest hand's updated timestamp
         games = NoLimitHoldEmGame.objects.filter(
             table__members__user__id=request.user.id,
+            table__id=table_pk,
             table__members__is_deleted=False, # does this target request.user?
         ).annotate(
             latest_hand_time=Subquery(
