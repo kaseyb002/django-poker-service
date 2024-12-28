@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from . import table_member_write_helpers
-from . import table_member_fetchers
+from . import table_member_fetchers, game_views
 from . import responses
 from django.shortcuts import get_object_or_404
 
@@ -72,7 +72,7 @@ class TableListView(generics.ListCreateAPIView):
             created_by=request.user,
         )
 
-        table_settings = TableSettings.objects.create(
+        TableSettings.objects.create(
             table=table
         )
 
@@ -89,23 +89,19 @@ class TableListView(generics.ListCreateAPIView):
             can_deal=True,
         )
 
-        table_member = table_member_write_helpers.join_table(
+        table_member_write_helpers.join_table(
             user=request.user, 
             table_id=table.id,
             permissions=admin_permissions,
         )
 
-        hold_em_game = NoLimitHoldEmGame.objects.create(
-            table=table
-        )
-
-        current_game = CurrentGame.objects.create(
-            table=table,
-            no_limit_hold_em_game=hold_em_game,
+        game_views.create_game(
+            table_id=table.id, 
+            game_type=GameType.NO_LIMIT_HOLD_EM
         )
 
         chat_room = ChatRoom.objects.create()
-        table_chat_room = TableChatRoom.objects.create(
+        TableChatRoom.objects.create(
             room=chat_room,
             table=table,
         )

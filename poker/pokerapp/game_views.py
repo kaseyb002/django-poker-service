@@ -39,8 +39,7 @@ class CurrentGameListView(generics.ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         current_games = CurrentGame.objects.filter(
             table__members__user__id=request.user.id,
-        ).exclude(
-            table__members__is_deleted=True,
+            table__members__is_deleted=False, # does this target request.user?
         )
         page = self.paginate_queryset(current_games)
 
@@ -112,9 +111,12 @@ class CurrentGameListView(generics.ListCreateAPIView):
         return Response(serializer.data)
 
 def create_game(table_id, game_type):
-    table = Table.objects.get(id=table_id)
+    table = get_object_or_404(
+        Table,
+        pk=table_id,
+    )
     current_game = CurrentGame.objects.filter(
-        table=table,
+        table__pk=table_id,
     ).first()
     game = None
     match game_type:
@@ -130,6 +132,7 @@ def create_game(table_id, game_type):
             current_game.no_limit_hold_em_game = game
         case _:
             raise Exception("Invalid game type")
+    # override current game settings
     current_game.last_move = timezone.now()
     current_game.members_turn = None
     current_game.selected_game = game_type

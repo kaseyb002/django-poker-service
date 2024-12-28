@@ -16,6 +16,8 @@ from . import push_notifications, push_categories
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from . import hand_json_helpers
+from django.db.models import Subquery, OuterRef, Prefetch
+from django.db.models.functions import Coalesce
 
 NO_LIMIT_HOLD_EM_MAX_SITTING_PLAYERS = 10
 
@@ -58,6 +60,53 @@ class HoldEmGameRetrieveView(generics.RetrieveUpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+class HoldEmGameListView(generics.ListAPIView):
+    pagination_class = NumberOnlyPagination
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        table_pk = self.kwargs.get('table_pk')
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=table_pk,
+        )
+        if not my_table_member:
+            return responses.user_not_in_table()
+        # Annotate NoLimitHoldEmGame with the latest hand's updated timestamp
+        games = NoLimitHoldEmGame.objects.filter(
+            table__members__user__id=request.user.id,
+            table__members__is_deleted=False, # does this target request.user?
+        ).annotate(
+            latest_hand_time=Subquery(
+                NoLimitHoldEmHand.objects.filter(
+                    game=OuterRef('pk')
+                ).order_by('-updated').values('updated')[:1]
+            )
+        ).order_by('-latest_hand_time', '-created')
+        page = self.paginate_queryset(games)
+
+        # find hold em hands
+        no_limit_hold_em_game_ids = [game.id for game in page]
+        hands = NoLimitHoldEmHand.objects.filter(
+            game__id__in=no_limit_hold_em_game_ids,
+            completed__isnull=True,
+        )
+        hands_dict = {}
+        for hand in hands:
+            hands_dict[hand.game.id] = hand
+        
+        game_list = []
+        for game in page:
+            game_serializer = NoLimitHoldEmGameSerializer(game, context={'request': request})
+            game_list.append({
+                'game': game_serializer.data,
+            })
+            if game.id in hands_dict:
+                hand = hands_dict[game.id]
+                hand_serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+                game_list[-1]['hand'] = hand_serializer.data
+        return self.get_paginated_response(game_list)
 
 class CurrentHoldEmGameRetrieveView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
@@ -106,7 +155,7 @@ class SelectHoldEmGameUpdateView(generics.UpdateAPIView):
         hand = NoLimitHoldEmHand.objects.filter(
             game__pk=game.id
         ).first()
-        if game.current_hand:
+        if hand:
             current_player_id = hand_json_helpers.current_player_user_id(hand_json=hand.hand_json)
             if current_player_id:
                 current_player = get_object_or_404(

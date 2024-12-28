@@ -7,7 +7,7 @@ from .table_chat_views import TableChatMessageListView, TableChatMetadataRetriev
 from .table_member_permissions import TableMemberPermissionsUpdateView
 from .game_views import CurrentGameRetrieveView, CurrentGameListView
 from . import table_invite_views, user_views, no_limit_hold_em_views, no_limit_hold_em_action_views
-from .no_limit_hold_em_views import PlayerListView, SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView, NoLimitHoldEmHandListView, NoLimitHoldEmHandRetrieveView, SelectHoldEmGameUpdateView
+from .no_limit_hold_em_views import PlayerListView, SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView, NoLimitHoldEmHandListView, NoLimitHoldEmHandRetrieveView, SelectHoldEmGameUpdateView, HoldEmGameListView
 from .no_limit_hold_em_adjustment_views import NoLimitHoldChipAdjustmentListView
 from .table_notification_settings_views import TableNotificationSettingsRetrieveView
 
@@ -54,6 +54,7 @@ urlpatterns = [
 
     # no limit hold em
     path('no_limit_hold_em_games/<uuid:game_pk>', HoldEmGameRetrieveView.as_view(), name='hold_em_game'),
+    path('tables/<uuid:table_pk>/no_limit_hold_em_games', HoldEmGameListView.as_view(), name='hold_em_game_list'),
     path('no_limit_hold_em_games/<uuid:game_pk>/select', SelectHoldEmGameUpdateView.as_view(), name='select_hold_em_game'),
     path('no_limit_hold_em_games/<uuid:game_pk>/current_hand', CurrentHoldEmHandRetrieveView.as_view(), name='current_hold_em_game'),
     path('no_limit_hold_em_games/<uuid:game_pk>/sit', no_limit_hold_em_views.sit, name='hold_em_sit'),
