@@ -160,7 +160,7 @@ class NoLimitHoldEmHand(models.Model):
         return not self.completed
 
     class Meta:
-        ordering = ['-created']
+        ordering = ['-updated']
 
 class NoLimitHoldEmChipAdjustment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -174,8 +174,38 @@ class NoLimitHoldEmChipAdjustment(models.Model):
     class Meta:
         ordering = ['-created']
 
+class Stage10Game(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    table = models.ForeignKey(Table, related_name='stage_10_games', on_delete=models.CASCADE)
+    game_json = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-updated']
+
+class Stage10GamePlayer(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    game = models.ForeignKey(Stage10Game, related_name='players', on_delete=models.CASCADE)
+    table_member = models.ForeignKey(TableMember, related_name='stage_10_players', on_delete=models.CASCADE)
+    is_sitting = models.BooleanField(default=False)
+
+    def user_id(self):
+        return self.table_member.user.id
+
+    def table_id(self):
+        return self.table_member.table.id
+
+    def username(self):
+        return self.table_member.username()
+
+    def image_url(self):
+        return self.table_member.image_url()
+
 class GameType(models.TextChoices):
     NO_LIMIT_HOLD_EM = 'NO_LIMIT_HOLD_EM', 'No Limit Hold Em'
+    STAGE_10 = 'STAGE_10', 'Stage 10'
  
 class CurrentGame(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -193,6 +223,11 @@ class CurrentGame(models.Model):
     )
     no_limit_hold_em_game = models.OneToOneField(
         NoLimitHoldEmGame,
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    stage_10_game = models.OneToOneField(
+        Stage10Game,
         on_delete=models.SET_NULL,
         null=True,
     )

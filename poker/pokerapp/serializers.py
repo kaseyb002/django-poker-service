@@ -225,9 +225,36 @@ class NoLimitHoldEmChipAdjustmentSerializer(serializers.ModelSerializer):
             'notes', 
         ]
 
+class Stage10GameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Stage10Game
+        fields = [
+            'id', 
+            'created', 
+            'updated', 
+            'table',
+            'game_json',
+        ]
+
+class Stage10GamePlayerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Stage10GamePlayer
+        fields = [
+            'id', 
+            'created', 
+            'game',
+            'table_id',
+            'user_id',
+            'username',
+            'image_url',
+            'is_sitting',
+        ]
+
+
 class CurrentGameSerializer(serializers.ModelSerializer):
     table = TableSerializer(read_only=True)
     no_limit_hold_em_game = NoLimitHoldEmGameSerializer(read_only=True)
+    stage_10_game = Stage10GameSerializer(read_only=True)
 
     class Meta:
         model = CurrentGame
@@ -236,6 +263,7 @@ class CurrentGameSerializer(serializers.ModelSerializer):
             'table',
             'selected_game',
             'no_limit_hold_em_game',
+            'stage_10_game',
             'users_turn',
             'last_move',
         ]

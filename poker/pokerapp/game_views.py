@@ -64,8 +64,7 @@ class CurrentGameListView(generics.ListCreateAPIView):
                 no_limit_hold_em_players_dict[player.game.id] = []
             no_limit_hold_em_players_dict[player.game.id].append(player)
         
-        # find other game types (ie, stage 10 round)
-
+        # find other game types if needed
 
         # make full games list
         games = []
@@ -130,6 +129,18 @@ def create_game(table_id, game_type):
                     no_limit_hold_em_game=game,
                 )
             current_game.no_limit_hold_em_game = game
+
+        case GameType.STAGE_10:
+            game = Stage10Game.objects.create(
+                table=table,
+            )
+            if not current_game:
+                current_game = CurrentGame.objects.create(
+                    table=table,
+                    stage_10_game=game,
+                )
+            current_game.stage_10_game = game
+
         case _:
             raise Exception("Invalid game type")
     # override current game settings

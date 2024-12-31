@@ -10,6 +10,8 @@ from . import table_invite_views, user_views, no_limit_hold_em_views, no_limit_h
 from .no_limit_hold_em_views import PlayerListView, SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView, NoLimitHoldEmHandListView, NoLimitHoldEmHandRetrieveView, SelectHoldEmGameUpdateView, HoldEmGameListView
 from .no_limit_hold_em_adjustment_views import NoLimitHoldChipAdjustmentListView
 from .table_notification_settings_views import TableNotificationSettingsRetrieveView
+from . import stage_10_game_views
+from .stage_10_game_views import Stage10GameRetrieveView, Stage10GameListView, CurrentStage10GameRetrieveView, SelectStage10GameUpdateView, Stage10PlayerListView, Stage10PlayerRetrieveView, Stage10SittingPlayersListView
 
 urlpatterns = [
     # user 
@@ -31,6 +33,7 @@ urlpatterns = [
     path('tables/<uuid:table_pk>/current_game', CurrentGameRetrieveView.as_view(), name='current-game'),
     path('tables/<uuid:table_pk>/current_game/no_limit_hold_em', CurrentHoldEmGameRetrieveView.as_view(), name='current-hold-em-game'),
     path('tables/<uuid:table_pk>/current_game/no_limit_hold_em/current_hand', CurrentHoldEmHandRetrieveView.as_view(), name='current-hold-em-hand'),
+    path('tables/<uuid:table_pk>/current_game/stage_10', CurrentStage10GameRetrieveView.as_view(), name='current-stage-10-game'),
     path('tables/<uuid:table_pk>/new_game', CurrentGameListView.as_view(), name='new-game'),
 
     # members
@@ -72,4 +75,17 @@ urlpatterns = [
     path('no_limit_hold_em_games/<uuid:game_pk>/force', no_limit_hold_em_action_views.force_move, name='hold_em_force_move'),
     path('no_limit_hold_em_games/<uuid:game_pk>/toggle_auto_move', no_limit_hold_em_action_views.toggle_auto_move, name='hold_em_toggle_auto_move'),
     path('no_limit_hold_em_games/<uuid:game_pk>/<str:action>', no_limit_hold_em_action_views.make_move, name='hold_em_make_move'),
+
+    # stage 10
+    path('stage_10_games/<uuid:game_pk>', Stage10GameRetrieveView.as_view(), name='stage_10_game'),
+    path('tables/<uuid:table_pk>/stage_10_games', Stage10GameListView.as_view(), name='stage_10_game_list'),
+    path('stage_10_games/<uuid:game_pk>/select', SelectStage10GameUpdateView.as_view(), name='select_stage_10_game'),
+    path('stage_10_games/<uuid:game_pk>/current_hand', CurrentStage10GameRetrieveView.as_view(), name='current_stage_10_game'),
+    path('stage_10_games/<uuid:game_pk>/sit', stage_10_game_views.sit, name='stage_10_sit'),
+    path('stage_10_games/<uuid:game_pk>/sit_out', stage_10_game_views.sit_out, name='stage_10_sit_out'),
+    path('stage_10_games/<uuid:game_pk>/players/<int:user_pk>/sit_out', stage_10_game_views.sit_player_out, name='stage_10_sit_player_out'),
+    path('stage_10_games/<uuid:game_pk>/players', Stage10PlayerListView.as_view(), name='stage_10_player_list'),
+    path('stage_10_games/<uuid:game_pk>/players/<int:user_pk>', Stage10PlayerRetrieveView.as_view(), name='stage_10_player'),
+    path('stage_10_games/<uuid:game_pk>/sitting_players', Stage10SittingPlayersListView.as_view(), name='stage_10_sitting_players'),
+
 ]
