@@ -233,7 +233,6 @@ class Stage10GameSerializer(serializers.ModelSerializer):
             'created', 
             'updated', 
             'table',
-            'game_json',
         ]
 
 class Stage10GamePlayerSerializer(serializers.ModelSerializer):

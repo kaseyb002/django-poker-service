@@ -88,6 +88,25 @@ class NoLimitHoldEmChipAdjustmentAdmin(admin.ModelAdmin):
     
 admin.site.register(NoLimitHoldEmChipAdjustment, NoLimitHoldEmChipAdjustmentAdmin)
 
+class Stage10GameAdmin(admin.ModelAdmin):
+    list_display = ('id', 'table_id', 'table_name', 'created')
+
+    def table_id(self, obj):
+        return obj.table.id
+
+    def table_name(self, obj):
+        return obj.table.name
+
+admin.site.register(Stage10Game, Stage10GameAdmin)
+
+class Stage10GamePlayerAdmin(admin.ModelAdmin):
+    list_display = ('id', 'game', 'user_id')
+
+    def user_id(self, obj):
+        return obj.user_id()
+
+admin.site.register(Stage10GamePlayer, Stage10GamePlayerAdmin)
+
 class ChatRoomAdmin(admin.ModelAdmin):
     list_display = ('id',)
 

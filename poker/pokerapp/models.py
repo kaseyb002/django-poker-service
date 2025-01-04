@@ -2,6 +2,7 @@ import uuid
 from django.contrib.auth.models import User
 from django.db import models
 from enum import Enum
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 class Account(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -179,7 +180,6 @@ class Stage10Game(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     table = models.ForeignKey(Table, related_name='stage_10_games', on_delete=models.CASCADE)
-    game_json = models.JSONField(null=True, blank=True)
 
     class Meta:
         ordering = ['-updated']
@@ -190,6 +190,14 @@ class Stage10GamePlayer(models.Model):
     game = models.ForeignKey(Stage10Game, related_name='players', on_delete=models.CASCADE)
     table_member = models.ForeignKey(TableMember, related_name='stage_10_players', on_delete=models.CASCADE)
     is_sitting = models.BooleanField(default=False)
+    stage = models.IntegerField(
+        default=1,
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(10),
+        ]
+    )
+    points = models.IntegerField(default=0)
 
     def user_id(self):
         return self.table_member.user.id

@@ -12,6 +12,7 @@ from .no_limit_hold_em_adjustment_views import NoLimitHoldChipAdjustmentListView
 from .table_notification_settings_views import TableNotificationSettingsRetrieveView
 from . import stage_10_game_views
 from .stage_10_game_views import Stage10GameRetrieveView, Stage10GameListView, CurrentStage10GameRetrieveView, SelectStage10GameUpdateView, Stage10PlayerListView, Stage10PlayerRetrieveView, Stage10SittingPlayersListView
+from . import stage_10_action_views
 
 urlpatterns = [
     # user 
@@ -87,5 +88,7 @@ urlpatterns = [
     path('stage_10_games/<uuid:game_pk>/players', Stage10PlayerListView.as_view(), name='stage_10_player_list'),
     path('stage_10_games/<uuid:game_pk>/players/<int:user_pk>', Stage10PlayerRetrieveView.as_view(), name='stage_10_player'),
     path('stage_10_games/<uuid:game_pk>/sitting_players', Stage10SittingPlayersListView.as_view(), name='stage_10_sitting_players'),
-
+    path('stage_10_games/<uuid:game_pk>/start', stage_10_action_views.start, name='stage_10_start_new_game'),
+    path('stage_10_games/<uuid:game_pk>/pickup_card', stage_10_action_views.pickup_card, name='stage_10_pickup_card'),
+    path('stage_10_games/<uuid:game_pk>/discard', stage_10_action_views.discard, name='stage_10_discard_card'),
 ]

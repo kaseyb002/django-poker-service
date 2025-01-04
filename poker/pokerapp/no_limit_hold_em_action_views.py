@@ -70,18 +70,14 @@ def deal_new_hand(game):
             'chip_count':float(player.chip_count),
         }
     turn_off_auto_move_for_all_players(game_id=game.id)
-    # sit out players with insufficient stack
+    sit_out_players_with_insufficient_stack(game.id)
     sitting_players = NoLimitHoldEmGamePlayer.objects.filter(
         game__id=game.id,
         is_sitting=True,
     )
-    for sitting_player in sitting_players:
-        if sitting_player.chip_count <= 0:
-            sitting_player.is_sitting=False
-            sitting_player.save()
     # check player count is in bounds
-    #if sitting_players.count() < 2:
-    #    return responses.bad_request("Not enough players to play.")
+    if sitting_players.count() < 2:
+        return responses.bad_request("Not enough players to play.")
     if sitting_players.count() > 10:
         return responses.bad_request("Too many players. " + str(sitting_players.count()) + " sitting. Max is 10." )
     # make players
@@ -310,6 +306,7 @@ def finish_move(current_hand, hand_json):
         current_hand.save()
         notify_winners_and_losers(current_hand=current_hand)
         notify_big_pot_subscribers(current_hand=current_hand)
+        sit_out_players_with_insufficient_stack(game_id=current_hand.game.id)
         if current_hand.game.auto_deal:
             def deal_new():
                 deal_new_hand(game=current_hand.game)
@@ -334,7 +331,7 @@ def auto_move_if_needed(current_hand):
     ).get(
         table_member__user__id=user_id
     )
-    if player.is_auto_move_on:
+    if player.is_auto_move_on or not player.is_sitting:
         hand_json = act_on_hand(
             action='force', 
             amount=None,
@@ -492,3 +489,15 @@ def notify_winners_and_losers(current_hand):
                 thread_id=push_categories.game_thread_id(current_hand.game.id),
                 collapse_id=push_categories.game_collapse_id(current_hand.game.id),
             )
+
+@transaction.atomic
+def sit_out_players_with_insufficient_stack(game_id):
+    sitting_players = NoLimitHoldEmGamePlayer.objects.filter(
+        game__id=game_id,
+        is_sitting=True,
+    )
+    for sitting_player in sitting_players:
+        if sitting_player.chip_count <= 0:
+            sitting_player.is_sitting=False
+            sitting_player.save()
+    return sitting_players

@@ -192,6 +192,9 @@ class CurrentHoldEmHandRetrieveView(generics.RetrieveAPIView):
             return responses.user_not_in_table()
         hand = NoLimitHoldEmHand.objects.filter(
             game__pk=game.id
+        ).exclude(
+            # exclude if hand was completed more than 60 seconds ago
+            completed__lt=timezone.now() - timezone.timedelta(seconds=60)
         ).first()
         if not hand:
             return Response({'hand':None})
