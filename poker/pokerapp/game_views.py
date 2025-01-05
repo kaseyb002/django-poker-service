@@ -24,7 +24,7 @@ class CurrentGameRetrieveView(generics.RetrieveAPIView):
             table_id=table_pk,
         )
         if not my_table_member:
-            return responses.unauthorized("User is not a member of this table.")
+            return responses.forbidden("User is not a member of this table.")
         current_game = get_object_or_404(
             CurrentGame,
             table__id=table_pk,
@@ -104,7 +104,7 @@ class CurrentGameListView(generics.ListCreateAPIView):
         if not my_table_member:
             return responses.user_not_in_table()
         if not my_table_member.permissions.can_edit_settings:
-            return responses.unauthorized("User cannot create games")
+            return responses.forbidden("User cannot create games")
         game = create_game(table_pk, game_type)
         serializer = CurrentGameSerializer(game, context={'request': request})
         return Response(serializer.data)

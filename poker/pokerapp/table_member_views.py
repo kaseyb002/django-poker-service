@@ -54,7 +54,7 @@ class TableMemberRetrieveView(generics.RetrieveDestroyAPIView):
             table_id=table_pk,
         )
         if not my_table_member.permissions.can_remove_member:
-            return responses.unauthorized("User cannot remove members")
+            return responses.forbidden("User cannot remove members")
         if not table_member_fetchers.get_table_has_another_admin(
             user_id=user_pk,
             table_id=table_pk,

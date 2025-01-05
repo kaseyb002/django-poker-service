@@ -50,7 +50,7 @@ class HoldEmGameRetrieveView(generics.RetrieveUpdateAPIView):
             table_id=game.table.id,
         )
         if not my_table_member.permissions.can_edit_settings:
-            return responses.unauthorized("User cannot edit settings")
+            return responses.forbidden("User cannot edit settings")
         serializer = NoLimitHoldEmGameSerializer(
             game, 
             data=request.data,
@@ -143,9 +143,9 @@ class SelectHoldEmGameUpdateView(generics.UpdateAPIView):
             table_id=game.table.id,
         )
         if not my_table_member:
-            return responses.unauthorized("User is not a member of this table.")
+            return responses.forbidden("User is not a member of this table.")
         if not my_table_member.permissions.can_edit_settings:
-            return responses.unauthorized("User cannot change games")
+            return responses.forbidden("User cannot change games")
         current_game = get_object_or_404(
             CurrentGame,
             table__id=game.table.id,
@@ -334,7 +334,7 @@ def sit(request, *args, **kwargs):
         table_id=game.table.id,
     )
     if not table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
+        return responses.forbidden("User is not permitted to play.")
     player = no_limit_hold_em_game_fetchers.get_or_make_game_player(
         user_id=request.user.id,
         game_id=game_pk,
@@ -416,7 +416,7 @@ def sit_player_out(request, *args, **kwargs):
         table_id=player.game.table.id,
     )
     if not my_table_member.permissions.can_sit_player_out:
-        return responses.unauthorized("User does not have permission to sit players out.")
+        return responses.forbidden("User does not have permission to sit players out.")
     player.is_sitting = False
     player.save()
     
@@ -465,7 +465,7 @@ def add_chips(request, *args, **kwargs):
     if not my_table_member:
         return responses.user_not_in_table()
     if not my_table_member.permissions.can_adjust_chips:
-        return responses.unauthorized("User does not have permission to adjust chips.")
+        return responses.forbidden("User does not have permission to adjust chips.")
 
     current_hand = NoLimitHoldEmHand.objects.filter(
         game__id=game_pk,

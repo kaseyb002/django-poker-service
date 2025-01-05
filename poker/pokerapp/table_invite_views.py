@@ -93,7 +93,7 @@ class TableInviteListView(generics.ListCreateAPIView):
             table_id=table_pk,
         )
         if not table_member.permissions.can_send_invite:
-            return responses.unauthorized("User does not have invite permissions.")
+            return responses.forbidden("User does not have invite permissions.")
         invite = TableInvite.objects.create(
             created_by=request.user,
             table=table_member.table,
@@ -117,9 +117,9 @@ class TableInviteRetrieveView(generics.DestroyAPIView):
             table_id=invite.table.id,
         )
         if not my_table_member:
-            return responses.unauthorized("User is not a member of this table.")
+            return responses.forbidden("User is not a member of this table.")
         if my_table_member.user != invite.created_by:
-            return responses.unauthorized("User did not create this invite.")
+            return responses.forbidden("User did not create this invite.")
         if invite.used_by:
             return responses.bad_request("Invite has already been used.")
         invite.delete()

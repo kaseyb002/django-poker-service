@@ -36,7 +36,7 @@ class TableRetrieveView(generics.RetrieveUpdateAPIView):
             table_id=table.id,
         )
         if not my_table_member.permissions.can_edit_settings:
-            return responses.unauthorized("User cannot edit settings")
+            return responses.forbidden("User cannot edit settings")
         serializer = TableSerializer(
             table, 
             data=request.data,

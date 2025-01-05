@@ -39,7 +39,8 @@ rm -rf env/
 python3 -m venv env
 source env/bin/activate
 pip install -r requirements.txt
-pip install "uvicorn[standard]"
+pip install firebase-admin # cant get this to show in requirements.txt
+pip install "uvicorn[standard]" # cant get this to show in requirements.txt
 python poker/manage.py migrate
 sudo systemctl restart gunicorn
 sudo systemctl restart uvicorn

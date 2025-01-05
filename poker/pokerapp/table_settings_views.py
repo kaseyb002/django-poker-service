@@ -32,7 +32,7 @@ class TableSettingsRetrieveView(generics.RetrieveUpdateAPIView):
             table_id=table_pk,
         )
         if not my_table_member.permissions.can_edit_settings:
-            return responses.unauthorized("User cannot edit settings")
+            return responses.forbidden("User cannot edit settings")
         table_settings = get_object_or_404(
             TableSettings,
             table__pk=table_pk,

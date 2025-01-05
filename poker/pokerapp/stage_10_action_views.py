@@ -43,7 +43,7 @@ def start(request, *args, **kwargs):
         table_id=game.table.id,
     )
     if not my_table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
+        return responses.forbidden("User is not permitted to play.")
     game_json = start_new_game(game=game)
     if type(game_json) == Response:
         response = game_json
@@ -105,7 +105,7 @@ def pickup_card(request, *args, **kwargs):
         table_id=game.table.id,
     )
     if not my_table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
+        return responses.forbidden("User is not permitted to play.")
     if not game.game_json:
         return responses.bad_request("Game has not started.")
     data = {
@@ -141,7 +141,7 @@ def discard(request, *args, **kwargs):
         table_id=game.table.id,
     )
     if not my_table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
+        return responses.forbidden("User is not permitted to play.")
     if not game.game_json:
         return responses.bad_request("Game has not started.")
     data = {

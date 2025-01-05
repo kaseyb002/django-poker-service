@@ -24,7 +24,7 @@ class TableMemberPermissionsUpdateView(generics.UpdateAPIView):
             table_id=table_pk,
         )
         if not my_table_member.permissions.can_edit_permissions:
-            return responses.unauthorized("User cannot edit permissions")
+            return responses.forbidden("User cannot edit permissions")
 
         table_member = table_member_fetchers.get_table_member(
             user_id=user_id, 

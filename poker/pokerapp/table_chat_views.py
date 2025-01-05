@@ -24,7 +24,7 @@ class TableChatMetadataRetrieveView(generics.RetrieveAPIView):
             table_id=table_pk,
         )
         if not my_table_member:
-            return responses.unauthorized("User is not a member of this table.")
+            return responses.forbidden("User is not a member of this table.")
         table_chat_room = get_object_or_404(
             TableChatRoom,
             table__id=table_pk,
@@ -79,7 +79,7 @@ class TableChatMessageListView(generics.ListCreateAPIView):
         if not my_table_member:
             return responses.user_not_in_table()
         if not my_table_member.permissions.can_chat:
-            return responses.unauthorized("User is not permitted to chat.")
+            return responses.forbidden("User is not permitted to chat.")
         table_chat_room = get_object_or_404(
             TableChatRoom,
             table__pk=table_pk,
@@ -125,7 +125,7 @@ class TableChatMessageDetailView(generics.DestroyAPIView):
             pk=message_pk,
         )
         if chat_message.user != request.user:
-            return responses.unauthorized("User did not create this message.")
+            return responses.forbidden("User did not create this message.")
         chat_message.is_deleted = True
         chat_message.save()
         return Response(

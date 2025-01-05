@@ -47,7 +47,7 @@ def deal(request, *args, **kwargs):
         table_id=game.table.id,
     )
     if not my_table_member.permissions.can_deal:
-        return responses.unauthorized("User is not permitted to deal.")
+        return responses.forbidden("User is not permitted to deal.")
     hand = deal_new_hand(game=game)
     if type(hand) == Response:
         response = hand
@@ -152,7 +152,7 @@ def make_move(request, *args, **kwargs):
         table_id=game.table.id,
     )
     if not my_table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
+        return responses.forbidden("User is not permitted to play.")
     current_hand = valid_current_hand(game_pk)
     if not current_hand:
         return responses.bad_request("No hand currently being played.")
@@ -199,7 +199,7 @@ def force_move(request, *args, **kwargs):
         table_id=game.table.id,
     )
     if not my_table_member.permissions.can_force_move:
-        return responses.unauthorized("User is not permitted force a move.")
+        return responses.forbidden("User is not permitted force a move.")
     current_hand = valid_current_hand(game_pk)
     if not current_hand:
         return responses.bad_request("No hand currently being played.")
@@ -245,7 +245,7 @@ def toggle_auto_move(request, *args, **kwargs):
         table_id=game.table.id,
     )
     if not my_table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
+        return responses.forbidden("User is not permitted to play.")
     current_hand = valid_current_hand(game_pk)
     if not current_hand:
         return responses.bad_request("No hand currently being played.")

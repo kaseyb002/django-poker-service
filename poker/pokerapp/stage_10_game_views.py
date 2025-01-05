@@ -50,7 +50,7 @@ class Stage10GameRetrieveView(generics.RetrieveUpdateAPIView):
             table_id=game.table.id,
         )
         if not my_table_member.permissions.can_edit_settings:
-            return responses.unauthorized("User cannot edit settings")
+            return responses.forbidden("User cannot edit settings")
         serializer = Stage10Game(
             game, 
             data=request.data,
@@ -116,9 +116,9 @@ class SelectStage10GameUpdateView(generics.UpdateAPIView):
             table_id=game.table.id,
         )
         if not my_table_member:
-            return responses.unauthorized("User is not a member of this table.")
+            return responses.forbidden("User is not a member of this table.")
         if not my_table_member.permissions.can_edit_settings:
-            return responses.unauthorized("User cannot change games")
+            return responses.forbidden("User cannot change games")
         current_game = get_object_or_404(
             CurrentGame,
             table__id=game.table.id,
@@ -237,7 +237,7 @@ def sit(request, *args, **kwargs):
         table_id=game.table.id,
     )
     if not table_member.permissions.can_play:
-        return responses.unauthorized("User is not permitted to play.")
+        return responses.forbidden("User is not permitted to play.")
     player = stage_10_game_fetchers.get_or_make_game_player(
         user_id=request.user.id,
         game_id=game_pk,
@@ -320,7 +320,7 @@ def sit_player_out(request, *args, **kwargs):
         table_id=player.game.table.id,
     )
     if not my_table_member.permissions.can_sit_player_out:
-        return responses.unauthorized("User does not have permission to sit players out.")
+        return responses.forbidden("User does not have permission to sit players out.")
     player.is_sitting = False
     player.save()
     
