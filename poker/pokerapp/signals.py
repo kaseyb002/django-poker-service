@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import NoLimitHoldEmGamePlayer, NoLimitHoldEmHand, NoLimitHoldEmGame, Table, TableMember, TableSettings, ChatMessage, CurrentGame
+from .models import NoLimitHoldEmGamePlayer, NoLimitHoldEmHand, NoLimitHoldEmGame, Table, TableMember, TableSettings, ChatMessage, CurrentGame, TablePermissions
 from .serializers import NoLimitHoldEmGamePlayerSerializer, NoLimitHoldEmHandSerializer, NoLimitHoldEmGameSerializer, TableSerializer, TableMemberSerializer, TableSettingsSerializer, ChatMessageSerializer, CurrentGameSerializer
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -46,6 +46,19 @@ def notify_table_current_game_saved(sender, instance, created, **kwargs):
         "game": serializer.data,
     }
     send_table_message(instance.table.id, data)
+
+@receiver(post_save, sender=TablePermissions)
+def notify_table_permissions_saved(sender, instance, created, **kwargs):
+    table_member = TableMember.objects.filter(
+        permissions=instance
+    ).first()
+    if table_member:
+        serializer = TableMemberSerializer(table_member)
+        data = {
+            "update_type": "member",
+            "member": serializer.data,
+        }
+        send_table_message(table_member.table.id, data)
 
 def send_table_message(table_id, data):
     json_data = json.dumps(data, cls=UUIDEncoder)

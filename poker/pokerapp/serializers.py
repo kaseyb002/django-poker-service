@@ -211,6 +211,7 @@ class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
             'hand_json', 
             'completed',
             'players',
+            'hand_number',
         ]
 
 class NoLimitHoldEmChipAdjustmentSerializer(serializers.ModelSerializer):

@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 import locale
+from django.db.models import Max
 
 def send_request(path, data):
     json_body = json.loads(json.dumps(data))
@@ -92,10 +93,15 @@ def deal_new_hand(game):
         'players': sitting_players_json,
     }
     hand_json = send_request('deal', data)
+    max_hand_number = (
+        NoLimitHoldEmHand.objects.filter(game_id=game.id)
+        .aggregate(Max('hand_number'))['hand_number__max'] or 0
+    )
     # save hand
     hand = NoLimitHoldEmHand.objects.create(
         game=game,
         hand_json=hand_json,
+        hand_number=max_hand_number + 1,
     )
     hand.players.set(sitting_players)
     # if some players cannot cover the blind, an auto-completed hand may result

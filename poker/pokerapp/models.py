@@ -155,7 +155,7 @@ class NoLimitHoldEmHand(models.Model):
     completed = models.DateTimeField(null=True)
     players = models.ManyToManyField(NoLimitHoldEmGamePlayer)
     hand_json = models.JSONField(null=False, blank=False)
-    hand_number = models.BigIntegerField(unique=True, null=True)
+    hand_number = models.BigIntegerField(null=True)
 
     def is_completed(self):
         return not self.completed
