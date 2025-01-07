@@ -18,13 +18,14 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 import locale
 from django.db.models import Max
+from . import errors
 
 def send_request(path, data):
     json_body = json.loads(json.dumps(data))
     url = 'http://127.0.0.1:8080/nolimitholdem/' + path
     response = requests.post(url, json=json_body)
     if response.status_code != 200:
-        return responses.bad_request(response.json().get('reason', "Unknown error."))
+        raise errors.PokerServiceError(response.json().get('reason', "Unknown error."))
     return response.json()
 
 def valid_current_hand(game_id):
@@ -50,9 +51,6 @@ def deal(request, *args, **kwargs):
     if not my_table_member.permissions.can_deal:
         return responses.forbidden("User is not permitted to deal.")
     hand = deal_new_hand(game=game)
-    if type(hand) == Response:
-        response = hand
-        return response
     serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
     return Response(serializer.data)
 
@@ -78,9 +76,9 @@ def deal_new_hand(game):
     )
     # check player count is in bounds
     if sitting_players.count() < 2:
-        return responses.bad_request("Not enough players to play.")
+        raise errors.PokerServiceError("Not enough players to play.")
     if sitting_players.count() > 10:
-        return responses.bad_request("Too many players. " + str(sitting_players.count()) + " sitting. Max is 10." )
+        raise errors.PokerServiceError("Too many players. " + str(sitting_players.count()) + " sitting. Max is 10.")
     # make players
     sitting_players = players_for_next_hand(game_id=game.id)
     sitting_players_json = []
@@ -131,7 +129,6 @@ def players_for_next_hand(game_id):
     if previous_hand:
         # first i need to make a new list of sitting_players that is the same order as the previous list
         rotated_players = []
-        new_players = []
         for player_hand in previous_hand.hand_json['player_hands']:
             player_id = player_hand['player']['id']
             if player_id in sitting_player_dict:
@@ -187,9 +184,6 @@ def make_move(request, *args, **kwargs):
         current_hand=current_hand,
         hand_json=hand_json,
     )
-    if type(current_hand) == Response:
-        response = current_hand
-        return response
     serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
     return Response(serializer.data)
 

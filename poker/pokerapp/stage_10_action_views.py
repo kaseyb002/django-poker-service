@@ -19,13 +19,14 @@ from django.db.models import Subquery, OuterRef, Prefetch
 from django.db.models.functions import Coalesce
 import json
 import requests
+from . import errors
 
 def send_request(path, data):
     json_body = json.loads(json.dumps(data))
     url = 'http://127.0.0.1:8080/stage10/' + path
     response = requests.post(url, json=json_body)
     if response.status_code != 200:
-        return responses.bad_request(response.json().get('reason', "Unknown error."))
+        raise errors.PokerServiceError(response.json().get('reason', "Unknown error."))
     return response.json()
 
 @api_view(['POST'])
