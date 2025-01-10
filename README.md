@@ -73,9 +73,10 @@ curl http://127.0.0.1:8080 # test, should give you an json-formatted not found e
 I'm not sure if this below is quite right.
 ```
 cd ~/vapor-poker-service/
+git reset --hard # you always have to redo the packages, this is probably bad practice but i dont care
 git pull origin main
 swift package update
-sudo supervisorctl start poker
+sudo supervisorctl restart poker
 ```
 
 `swiftly install latest` breaks on a 1Gb RAM machine. So I had to upgrade to 2Gb. You can try increasing the swap file size, but I doubt it will work. 

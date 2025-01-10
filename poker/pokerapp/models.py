@@ -231,6 +231,7 @@ class CurrentGame(models.Model):
     )
     no_limit_hold_em_game = models.OneToOneField(
         NoLimitHoldEmGame,
+        related_name='current_game',
         on_delete=models.SET_NULL,
         null=True,
     )

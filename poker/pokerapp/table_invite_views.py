@@ -61,7 +61,10 @@ def leave_table(request, *args, **kwargs):
         table_id=table_pk,
     ):
         return responses.no_admins_remaining()
-    table_member_write_helpers.remove_table_member(table_member=table_member)
+    table_member_write_helpers.remove_table_member(
+        table_member=table_member,
+        removed_by=None,
+    )
     return Response(
         {},
         status=status.HTTP_204_NO_CONTENT,

@@ -49,8 +49,15 @@ class HoldEmGameRetrieveView(generics.RetrieveUpdateAPIView):
             user_id=request.user.id, 
             table_id=game.table.id,
         )
-        if not my_table_member.permissions.can_edit_settings:
-            return responses.forbidden("User cannot edit settings")
+
+        def has_permission():
+            if my_table_member.permissions.can_edit_settings:
+                return True
+            if (len(request.data) == 1 and 'auto_deal' in request.data and isinstance(request.data['auto_deal'], bool)):
+                return my_table_member.permissions.can_deal
+            return False
+        if not has_permission():
+            return responses.forbidden("User cannot edit game settings")
         serializer = NoLimitHoldEmGameSerializer(
             game, 
             data=request.data,
@@ -78,6 +85,8 @@ class HoldEmGameListView(generics.ListAPIView):
             table__members__user__id=request.user.id,
             table__id=table_pk,
             table__members__is_deleted=False, # does this target request.user?
+        ).exclude(
+            current_game__selected_game=GameType.NO_LIMIT_HOLD_EM,
         ).annotate(
             latest_hand_time=Subquery(
                 NoLimitHoldEmHand.objects.filter(
@@ -91,7 +100,6 @@ class HoldEmGameListView(generics.ListAPIView):
         no_limit_hold_em_game_ids = [game.id for game in page]
         hands = NoLimitHoldEmHand.objects.filter(
             game__id__in=no_limit_hold_em_game_ids,
-            completed__isnull=True,
         )
         hands_dict = {}
         for hand in hands:

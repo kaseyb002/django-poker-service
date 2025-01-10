@@ -53,7 +53,7 @@ def remove_table_member(table_member, removed_by):
     for player in players:
         player.is_sitting=False
         player.save()
-    if table_member.notification_settings.i_was_removed_from_table:
+    if removed_by and table_member.notification_settings.i_was_removed_from_table:
         push_notifications.send_push(
             to_user=table_member.user,
             text=removed_by.username + " removed you.",
