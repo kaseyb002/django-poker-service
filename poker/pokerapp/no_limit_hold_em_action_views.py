@@ -261,6 +261,39 @@ def toggle_auto_move(request, *args, **kwargs):
     serializer = NoLimitHoldEmGamePlayerSerializer(player, context={'request': request})
     return Response(serializer.data)
 
+@api_view(['POST'])
+def show_cards(request, *args, **kwargs):
+    class Serializer(serializers.Serializer):
+        show_cards = serializers.CharField()
+        player_id = serializers.CharField()
+    serializer = Serializer(data=request.data, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+    player_id = serializer.data['player_id']
+    show_cards = serializer.data['show_cards']
+    hand_pk = kwargs.get('hand_pk')
+    hand = get_object_or_404(
+        NoLimitHoldEmHand,
+        pk=hand_pk,
+    )
+    my_table_member = table_member_fetchers.get_table_member(
+        user_id=request.user.id, 
+        table_id=hand.game.table.id,
+    )
+    if not request.user.id == int(player_id):
+        return responses.forbidden("You can't show another player's cards.")
+    if not hand:
+        return responses.bad_request("No hand currently being played.")
+    data = {
+        'showCards':show_cards,
+        'playerID':player_id,
+        'hand': hand.hand_json,
+    }
+    hand_json = send_request('show', data)
+    hand.hand_json = hand_json
+    hand.save()
+    serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+    return Response(serializer.data)
+
 def act_on_hand(action, amount, current_hand):
     if action == 'bet':
         if not amount:

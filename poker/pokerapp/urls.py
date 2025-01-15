@@ -71,6 +71,7 @@ urlpatterns = [
     path('no_limit_hold_em_games/<uuid:game_pk>/chip_adjustments', NoLimitHoldChipAdjustmentListView.as_view(), name='hold_em_chip_adjustments'),
     path('no_limit_hold_em_games/<uuid:game_pk>/hands', NoLimitHoldEmHandListView.as_view(), name='hold_em_hand_list'),
     path('no_limit_hold_em_games/<uuid:game_pk>/hands/<uuid:hand_pk>', NoLimitHoldEmHandRetrieveView.as_view(), name='hold_em_hand'),
+    path('no_limit_hold_em_games/<uuid:game_pk>/hands/<uuid:hand_pk>/show', no_limit_hold_em_action_views.show_cards, name='show_cards'),
     # game actions
     path('no_limit_hold_em_games/<uuid:game_pk>/deal', no_limit_hold_em_action_views.deal, name='hold_em_deal'),
     path('no_limit_hold_em_games/<uuid:game_pk>/force', no_limit_hold_em_action_views.force_move, name='hold_em_force_move'),
