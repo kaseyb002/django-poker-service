@@ -20,6 +20,7 @@ from django.db.models.functions import Coalesce
 import json
 import requests
 from . import errors
+from django.db.models import Max
 
 def send_request(path, data):
     json_body = json.loads(json.dumps(data))
@@ -29,10 +30,17 @@ def send_request(path, data):
         raise errors.PokerServiceError(response.json().get('reason', "Unknown error."))
     return response.json()
 
+def valid_current_round(game_id):
+    return get_object_or_404(
+        Stage10Round,
+        game_id=game_id,
+        completed__isnull=True,
+    )
+
 @api_view(['POST'])
 def start(request, *args, **kwargs):
     """
-    Start Stage 10 game or return current game
+    Start Stage 10 round or return current game
     """
     game_pk = kwargs.get('game_pk')
     game = get_object_or_404(
@@ -43,16 +51,19 @@ def start(request, *args, **kwargs):
         user_id=request.user.id, 
         table_id=game.table.id,
     )
-    if not my_table_member.permissions.can_play:
-        return responses.forbidden("User is not permitted to play.")
-    game_json = start_new_game(game=game)
-    if type(game_json) == Response:
-        response = game_json
-        return response
-    serializer = Stage10GameSerializer(game, context={'request': request})
+    if not my_table_member.permissions.can_deal:
+        return responses.forbidden("User is not permitted to deal.")
+    round = start_new_round(game=game)
+    serializer = Stage10RoundSerializer(round, context={'request': request})
     return Response(serializer.data)
 
-def start_new_game(game):
+def start_new_round(game):
+    current_round = Stage10Round.objects.filter(
+        game_id=game.id,
+        completed__isnull=True,
+    ).first()
+    if current_round:
+        return current_round
     def make_player_json(player):
         return {
             'id':str(player.user_id()),
@@ -64,11 +75,11 @@ def start_new_game(game):
         is_sitting=True,
     )
     # check player count is in bounds
-    #if sitting_players.count() < 2:
-    #    return responses.bad_request("Not enough players to play.")
+    if sitting_players.count() < 2:
+       return responses.bad_request("Not enough players to play.")
     if sitting_players.count() > 6:
         return responses.bad_request("Too many players. " + str(sitting_players.count()) + " sitting. Max is 6." )
-    # make players
+    # TODO: ROTATE make players
     # sitting_players = players_for_next_hand(game_id=game.id)
     sitting_players_json = []
     for sitting_player in sitting_players:
@@ -77,14 +88,19 @@ def start_new_game(game):
     data = {
         'players': sitting_players_json,
     }
-    game_json = send_request('start', data)
-    if type(game_json) == Response:
-        response = game_json
-        return response
-    game.game_json = game_json
-    game.players.set(sitting_players)
-    game.save()
-    return game
+    round_json = send_request('start', data)
+    max_round_number = (
+        Stage10Round.objects.filter(game_id=game.id)
+        .aggregate(Max('round_number'))['round_number__max'] or 0
+    )
+    round = Stage10Round.objects.create(
+        game=game,
+        round_json=round_json,
+        round_number=max_round_number + 1,
+    )
+    round.players.set(sitting_players)
+    round.save()
+    return round
 
 @api_view(['POST'])
 def pickup_card(request, *args, **kwargs):
@@ -107,19 +123,15 @@ def pickup_card(request, *args, **kwargs):
     )
     if not my_table_member.permissions.can_play:
         return responses.forbidden("User is not permitted to play.")
-    if not game.game_json:
-        return responses.bad_request("Game has not started.")
+    current_round = valid_current_round(game_id=game.id)
     data = {
         'fromDiscardPile':from_discard_pile,
-        'game': game.game_json,
+        'round': current_round.round_json,
     }
-    game_json = send_request('pickupCard', data)
-    if type(game_json) == Response:
-        response = game_json
-        return response
-    game.game_json = game_json
-    game.save()
-    serializer = Stage10GameSerializer(game, context={'request': request})
+    round_json = send_request('pickupCard', data)
+    current_round.round_json = round_json
+    current_round.save()
+    serializer = Stage10RoundSerializer(current_round, context={'request': request})
     return Response(serializer.data)
 
 @api_view(['POST'])
@@ -128,10 +140,10 @@ def discard(request, *args, **kwargs):
     Discard a card from player's deck
     """
     class Serializer(serializers.Serializer):
-        card = serializers.JSONField()
+        card_id = serializers.IntegerField()
     serializer = Serializer(data=request.data, context={'request': request})
     serializer.is_valid(raise_exception=True)
-    card_json = serializer.data['card']
+    card_id = serializer.data['card_id']
     game_pk = kwargs.get('game_pk')
     game = get_object_or_404(
         Stage10Game,
@@ -143,17 +155,13 @@ def discard(request, *args, **kwargs):
     )
     if not my_table_member.permissions.can_play:
         return responses.forbidden("User is not permitted to play.")
-    if not game.game_json:
-        return responses.bad_request("Game has not started.")
+    current_round = valid_current_round(game_id=game.id)
     data = {
-        'card': card_json,
-        'game': game.game_json,
+        'cardID': card_id,
+        'round': current_round.round_json,
     }
-    game_json = send_request('discard', data)
-    if type(game_json) == Response:
-        response = game_json
-        return response
-    game.game_json = game_json
-    game.save()
-    serializer = Stage10GameSerializer(game, context={'request': request})
+    round_json = send_request('discard', data)
+    current_round.round_json = round_json
+    current_round.save()
+    serializer = Stage10RoundSerializer(current_round, context={'request': request})
     return Response(serializer.data)

@@ -107,6 +107,11 @@ class Stage10GamePlayerAdmin(admin.ModelAdmin):
 
 admin.site.register(Stage10GamePlayer, Stage10GamePlayerAdmin)
 
+class Stage10RoundAdmin(admin.ModelAdmin):
+    list_display = ('id',)
+    
+admin.site.register(Stage10Round, Stage10RoundAdmin)
+
 class ChatRoomAdmin(admin.ModelAdmin):
     list_display = ('id',)
 

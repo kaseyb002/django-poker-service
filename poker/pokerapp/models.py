@@ -211,6 +211,22 @@ class Stage10GamePlayer(models.Model):
     def image_url(self):
         return self.table_member.image_url()
 
+class Stage10Round(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    game = models.ForeignKey(Stage10Game, related_name='rounds', on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    completed = models.DateTimeField(null=True)
+    players = models.ManyToManyField(Stage10GamePlayer)
+    round_json = models.JSONField(null=False, blank=False)
+    round_number = models.BigIntegerField(null=True)
+
+    def is_completed(self):
+        return not self.completed
+
+    class Meta:
+        ordering = ['-updated']
+
 class GameType(models.TextChoices):
     NO_LIMIT_HOLD_EM = 'NO_LIMIT_HOLD_EM', 'No Limit Hold Em'
     STAGE_10 = 'STAGE_10', 'Stage 10'

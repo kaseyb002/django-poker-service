@@ -21,3 +21,9 @@ def get_table_has_another_admin(user_id, table_id):
     ).exclude(
         user__id=user_id,
     ).exists()
+
+def table_member_count(table_id):
+    return TableMember.objects.filter(
+        table__id=table_id,
+        is_deleted=False,
+    ).count()

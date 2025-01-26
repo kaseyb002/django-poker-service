@@ -250,6 +250,19 @@ class Stage10GamePlayerSerializer(serializers.ModelSerializer):
             'is_sitting',
         ]
 
+class Stage10RoundSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Stage10Round
+        fields = [
+            'id', 
+            'game',
+            'created', 
+            'updated', 
+            'round_json', 
+            'completed',
+            'players',
+            'round_number',
+        ]
 
 class CurrentGameSerializer(serializers.ModelSerializer):
     table = TableSerializer(read_only=True)

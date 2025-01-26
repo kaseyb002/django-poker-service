@@ -59,7 +59,7 @@ def leave_table(request, *args, **kwargs):
     if not table_member_fetchers.get_table_has_another_admin(
         user_id=request.user.id,
         table_id=table_pk,
-    ):
+    ) and not table_member_fetchers.table_member_count(table_pk) <= 1:
         return responses.no_admins_remaining()
     table_member_write_helpers.remove_table_member(
         table_member=table_member,

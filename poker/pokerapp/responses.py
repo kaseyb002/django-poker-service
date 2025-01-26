@@ -26,4 +26,4 @@ def user_lacks_permission():
     return forbidden("User does not have permission for this action.")
 
 def no_admins_remaining():
-    return bad_request("No other admins remaining.")
+    return bad_request("No other admins remaining. Assign another admin before leaving.")

@@ -76,6 +76,7 @@ cd ~/vapor-poker-service/
 git reset --hard # you always have to redo the packages, this is probably bad practice but i dont care
 git pull origin main
 swift package update
+swift build -c release
 sudo supervisorctl restart poker
 ```
 
