@@ -294,6 +294,30 @@ def show_cards(request, *args, **kwargs):
     serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
     return Response(serializer.data)
 
+@api_view(['POST'])
+def progress_round(request, *args, **kwargs):
+    hand_pk = kwargs.get('hand_pk')
+    hand = get_object_or_404(
+        NoLimitHoldEmHand,
+        pk=hand_pk,
+    )
+    my_table_member = table_member_fetchers.get_table_member(
+        user_id=request.user.id, 
+        table_id=hand.game.table.id,
+    )
+    if not hand:
+        return responses.bad_request("No hand currently being played.")
+    data = {
+        'hand': hand.hand_json,
+    }
+    hand_json = send_request('progressRound', data)
+    hand = finish_move(
+        current_hand=hand,
+        hand_json=hand_json,
+    )
+    serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+    return Response(serializer.data) 
+
 def act_on_hand(action, amount, current_hand):
     if action == 'bet':
         if not amount:

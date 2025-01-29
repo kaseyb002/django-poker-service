@@ -12,6 +12,7 @@ from . import table_member_fetchers
 from . import stage_10_game_fetchers
 from . import responses
 from . import table_member_write_helpers
+from . import stage_10_round_json_helper
 from . import push_notifications, push_categories
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -165,3 +166,21 @@ def discard(request, *args, **kwargs):
     current_round.save()
     serializer = Stage10RoundSerializer(current_round, context={'request': request})
     return Response(serializer.data)
+
+def finish_move(current_round, round_json):
+    current_round.round_json = round_json
+    # check if game is complete
+
+    # else if check if round is complete
+
+    # else just save the round_json
+    if stage_10_round_json_helper.is_round_complete(round_json):
+        current_round.completed = timezone.now()
+        # also need to update player points and current stage
+        for player_json in round_json['players']:
+            player = Stage10GamePlayer.objects.get(
+                game_id=current_round.game_id,
+                user_id=player_json['id'],
+            )
+            player.points = player_json['points']
+            player.save()
