@@ -179,6 +179,7 @@ class Stage10Game(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+    completed = models.DateTimeField(null=True)
     table = models.ForeignKey(Table, related_name='stage_10_games', on_delete=models.CASCADE)
 
     class Meta:

@@ -150,6 +150,34 @@ class SelectStage10GameUpdateView(generics.UpdateAPIView):
         serializer = CurrentGameSerializer(current_game, context={'request': request})
         return Response(serializer.data) 
 
+class CurrentStage10RoundRetrieveView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        game_pk = self.kwargs.get('game_pk')
+        game = get_object_or_404(
+            Stage10Game,
+            pk=game_pk,
+        )
+        if not game:
+            return responses.not_found("Game not found.")
+        my_table_member = table_member_fetchers.get_table_member(
+            user_id=request.user.id, 
+            table_id=game.table.id,
+        )
+        if not my_table_member:
+            return responses.user_not_in_table()
+        round = Stage10Round.objects.filter(
+            game__pk=game.id
+        # ).exclude(
+        #     # exclude if hand was completed more than 60 seconds ago
+        #     completed__lt=timezone.now() - timezone.timedelta(seconds=60)
+        ).first()
+        if not round:
+            return Response({'round':None})
+        serializer = Stage10RoundSerializer(round, context={'request': request})
+        return Response({'round':serializer.data})
+
 class Stage10PlayerRetrieveView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     

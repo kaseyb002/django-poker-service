@@ -233,6 +233,7 @@ class Stage10GameSerializer(serializers.ModelSerializer):
             'id', 
             'created', 
             'updated', 
+            'completed',
             'table',
         ]
 

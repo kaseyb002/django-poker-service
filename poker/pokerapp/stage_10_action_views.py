@@ -41,7 +41,7 @@ def valid_current_round(game_id):
 @api_view(['POST'])
 def start(request, *args, **kwargs):
     """
-    Start Stage 10 round or return current game
+    Start Stage 10 round or return current round
     """
     game_pk = kwargs.get('game_pk')
     game = get_object_or_404(
@@ -125,13 +125,20 @@ def pickup_card(request, *args, **kwargs):
     if not my_table_member.permissions.can_play:
         return responses.forbidden("User is not permitted to play.")
     current_round = valid_current_round(game_id=game.id)
+    if not stage_10_round_json_helper.is_players_turn(
+        user_id=request.user.id,
+        round_json=current_round.round_json,
+    ):
+        return responses.bad_request("Not player's turn.")
     data = {
         'fromDiscardPile':from_discard_pile,
         'round': current_round.round_json,
     }
     round_json = send_request('pickupCard', data)
-    current_round.round_json = round_json
-    current_round.save()
+    current_round = finish_move(
+        current_round=current_round, 
+        round_json=round_json,
+    )
     serializer = Stage10RoundSerializer(current_round, context={'request': request})
     return Response(serializer.data)
 
@@ -157,13 +164,58 @@ def discard(request, *args, **kwargs):
     if not my_table_member.permissions.can_play:
         return responses.forbidden("User is not permitted to play.")
     current_round = valid_current_round(game_id=game.id)
+    if not stage_10_round_json_helper.is_players_turn(
+        user_id=request.user.id,
+        round_json=current_round.round_json,
+    ):
+        return responses.bad_request("Not player's turn.")
+    current_round = valid_current_round(game_id=game.id)
     data = {
         'cardID': card_id,
         'round': current_round.round_json,
     }
     round_json = send_request('discard', data)
-    current_round.round_json = round_json
-    current_round.save()
+    current_round = finish_move(
+        current_round=current_round, 
+        round_json=round_json,
+    )
+    serializer = Stage10RoundSerializer(current_round, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['POST'])
+def complete_stage(request, *args, **kwargs):
+    """
+    Complete a stage's requirements
+    """
+    class Serializer(serializers.Serializer):
+        form = serializers.JSONField()
+    serializer = Serializer(data=request.data, context={'request': request})
+    serializer.is_valid(raise_exception=True)
+    form = serializer.data['form']
+    game_pk = kwargs.get('game_pk')
+    game = get_object_or_404(
+        Stage10Game,
+        pk=game_pk,
+    )
+    my_table_member = table_member_fetchers.get_table_member(
+        user_id=request.user.id, 
+        table_id=game.table.id,
+    )
+    current_round = valid_current_round(game_id=game.id)
+    if not stage_10_round_json_helper.is_players_turn(
+        user_id=request.user.id,
+        round_json=current_round.round_json,
+    ):
+        return responses.bad_request("Not player's turn.")
+    data = {
+        'form': form,
+        'round': current_round.round_json,
+    }
+    round_json = send_request('completeStage', data)
+    current_round = finish_move(
+        current_round=current_round, 
+        round_json=round_json,
+    )
     serializer = Stage10RoundSerializer(current_round, context={'request': request})
     return Response(serializer.data)
 
@@ -184,3 +236,5 @@ def finish_move(current_round, round_json):
             )
             player.points = player_json['points']
             player.save()
+    current_round.save()
+    return current_round
