@@ -52,6 +52,17 @@ class TablePermissions(models.Model):
     can_adjust_chips = models.BooleanField(default=False)
     can_deal = models.BooleanField(default=True)
 
+class DefaultTablePermissions(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    table = models.OneToOneField(
+        Table, 
+        related_name='default_permissions', 
+        on_delete=models.CASCADE
+    )
+    permissions = models.OneToOneField(TablePermissions, on_delete=models.CASCADE)
+
 class TableNotificationSettings(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created = models.DateTimeField(auto_now_add=True)

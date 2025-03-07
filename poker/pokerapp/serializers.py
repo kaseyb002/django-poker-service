@@ -124,6 +124,17 @@ class TablePermissionsSerializer(serializers.ModelSerializer):
             'can_adjust_chips',
         ]
 
+class DefaultTablePermissionsSerializer(serializers.ModelSerializer):
+    rights = TablePermissionsSerializer()
+
+    class Meta:
+        model = DefaultTablePermissions
+        fields = (
+            'id',
+            'table',
+            'permissions',
+        )
+
 class TableNotificationSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = TableNotificationSettings

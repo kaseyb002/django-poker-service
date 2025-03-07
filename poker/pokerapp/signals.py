@@ -97,7 +97,7 @@ def notify_no_limit_hold_em_game_hand_saved(sender, instance, created, **kwargs)
 def notify_no_limit_hold_em_game_saved(sender, instance, created, **kwargs):
     serializer = NoLimitHoldEmGameSerializer(instance)
     data = {
-        "update_type": "currentGame",
+        "update_type": "game",
         "game": serializer.data,
     }
     send_no_limit_hold_em_game_message(instance.id, data)
