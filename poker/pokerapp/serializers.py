@@ -125,7 +125,7 @@ class TablePermissionsSerializer(serializers.ModelSerializer):
         ]
 
 class DefaultTablePermissionsSerializer(serializers.ModelSerializer):
-    rights = TablePermissionsSerializer()
+    permissions = TablePermissionsSerializer()
 
     class Meta:
         model = DefaultTablePermissions

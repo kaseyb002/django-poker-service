@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from . import table_member_fetchers 
 from . import responses
 from . import table_member_write_helpers
+from . import table_default_permissions_helper
 import shortuuid
 from django.shortcuts import get_object_or_404
 
@@ -28,7 +29,9 @@ def join_table(request):
     if invite.used_by:
         return responses.bad_request("Invite code has already been used.")
 
-    member_permissions = TablePermissions.objects.create()
+    member_permissions = table_default_permissions_helper.new_member_permissions(
+        table_pk=invite.table.id,
+    )
 
     table_member = table_member_write_helpers.join_table(
         user=request.user, 

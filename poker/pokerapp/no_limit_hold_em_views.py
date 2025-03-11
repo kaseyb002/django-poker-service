@@ -509,7 +509,7 @@ def add_chips(request, *args, **kwargs):
     )
     adjustment.save()
 
-    if player.table_member.notification_settings.my_chips_adjusted:
+    if player.table_member.notification_settings.my_chips_adjusted and player.table_member.user.id != request.user.id:
         title = "Chips added"
         if amount < 0:
             title = "Chips removed"

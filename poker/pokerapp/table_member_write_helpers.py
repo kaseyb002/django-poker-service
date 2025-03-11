@@ -1,5 +1,5 @@
 from .models import Table, TableMember, NoLimitHoldEmGamePlayer, TableNotificationSettings, TablePermissions
-from . import table_member_fetchers
+from . import table_default_permissions_helper
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from . import push_categories, push_notifications, push_notifications_fetchers
@@ -76,7 +76,9 @@ def join_table_on_sign_up(user):
         ).first()
         if not table:
             return None
-        member_permissions = TablePermissions.objects.create()
+        member_permissions = table_default_permissions_helper.new_member_permissions(
+            table_pk=table.id,
+        )
         table_member = join_table(
             user=user, 
             table_id=table.id, 

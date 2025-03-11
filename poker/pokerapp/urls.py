@@ -10,6 +10,7 @@ from . import table_invite_views, user_views, no_limit_hold_em_views, no_limit_h
 from .no_limit_hold_em_views import PlayerListView, SittingPlayersListView, PlayerRetrieveView, CurrentHoldEmGameRetrieveView, CurrentHoldEmHandRetrieveView, HoldEmGameRetrieveView, NoLimitHoldEmHandListView, NoLimitHoldEmHandRetrieveView, SelectHoldEmGameUpdateView, HoldEmGameListView
 from .no_limit_hold_em_adjustment_views import NoLimitHoldChipAdjustmentListView
 from .table_notification_settings_views import TableNotificationSettingsRetrieveView
+from .table_default_permissions_views import DefaultTablePermissionsRetrieveUpdateView
 from . import stage_10_game_views
 from .stage_10_game_views import Stage10GameRetrieveView, Stage10GameListView, CurrentStage10GameRetrieveView, SelectStage10GameUpdateView, Stage10PlayerListView, Stage10PlayerRetrieveView, Stage10SittingPlayersListView, CurrentStage10RoundRetrieveView
 from . import stage_10_action_views
@@ -31,6 +32,7 @@ urlpatterns = [
     path('tables/<uuid:pk>', TableRetrieveView.as_view(), name='table-detail'),
     path('tables/<uuid:table_pk>/settings', TableSettingsRetrieveView.as_view(), name='table-settings'),
     path('tables/<uuid:table_pk>/notification_settings', TableNotificationSettingsRetrieveView.as_view(), name='table-notification-settings'),
+    path('tables/<uuid:table_pk>/default_permissions', DefaultTablePermissionsRetrieveUpdateView.as_view(), name='default-table-permissions'),
     path('tables/<uuid:table_pk>/current_game', CurrentGameRetrieveView.as_view(), name='current-game'),
     path('tables/<uuid:table_pk>/current_game/no_limit_hold_em', CurrentHoldEmGameRetrieveView.as_view(), name='current-hold-em-game'),
     path('tables/<uuid:table_pk>/current_game/no_limit_hold_em/current_hand', CurrentHoldEmHandRetrieveView.as_view(), name='current-hold-em-hand'),
