@@ -243,6 +243,7 @@ class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
         board_cards = data.get("board", [])
         visible_board = board_cards[: [0, 3, 4, 5][min(round_number, 3)]]
         data["board"] = visible_board
+        data["log"]["board"] = visible_board
 
         # Step 2: Prepare for pocket card filtering
         pocket_cards = data.get("pocket_cards", {})
@@ -265,35 +266,9 @@ class NoLimitHoldEmHandSerializer(serializers.ModelSerializer):
                 filtered_pocket_cards[player_id] = pocket_cards.get(player_id, {})
 
         data["pocket_cards"] = filtered_pocket_cards
+        data["log"]["pocket_cards"] = filtered_pocket_cards
 
         return data
-
-    def is_ready_for_dramatic_reveal(self, data):
-        round_number = data.get("round", 0)
-        state = data.get("state", {})
-        player_hands = data.get("player_hands", [])
-
-        # 1. Must be before river (river = 3)
-        if round_number >= 3:
-            return False
-
-        # 2. Must be waiting to progress
-        if not isinstance(state, dict) or "waiting_to_progress_to_next_round" not in state:
-            return False
-
-        # 3. Count active players who are NOT all-in
-        active_players_not_all_in = [
-            hand for hand in player_hands
-            if hand.get("status") == "in" and hand.get("player", {}).get("chip_count", 0) > 0
-        ]
-
-        # 4. Count all active players
-        active_player_hands = [
-            hand for hand in player_hands
-            if hand.get("status") == "in"
-        ]
-
-        return len(active_players_not_all_in) <= 1 and len(active_player_hands) > 1
 
 class NoLimitHoldEmChipAdjustmentSerializer(serializers.ModelSerializer):
     class Meta:
