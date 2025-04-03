@@ -26,6 +26,7 @@ def send_request(path, data):
     response = requests.post(url, json=json_body)
     if response.status_code != 200:
         raise errors.PokerServiceError(response.json().get('reason', "Unknown error."))
+    print(response.json())
     return response.json()
 
 def valid_current_hand(game_id):
@@ -51,7 +52,11 @@ def deal(request, *args, **kwargs):
     if not my_table_member.permissions.can_deal:
         return responses.forbidden("User is not permitted to deal.")
     hand = deal_new_hand(game=game)
-    serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+    serializer = NoLimitHoldEmHandSerializer(
+        hand, 
+        context={'request': request},
+        current_player_id=request.user.id,
+    )
     return Response(serializer.data)
 
 def deal_new_hand(game):
@@ -90,7 +95,8 @@ def deal_new_hand(game):
         'bigBlind':float(game.big_blind),
         'players': sitting_players_json,
     }
-    hand_json = send_request('deal', data)
+    response_json = send_request('deal', data)
+    hand_json = response_json['hand']
     max_hand_number = (
         NoLimitHoldEmHand.objects.filter(game_id=game.id)
         .aggregate(Max('hand_number'))['hand_number__max'] or 0
@@ -102,6 +108,7 @@ def deal_new_hand(game):
         hand_number=max_hand_number + 1,
     )
     hand.players.set(sitting_players)
+    hand.force_reveal_cards_for_player_ids = response_json.get('force_reveal_cards_for_player_ids', [])
     # if some players cannot cover the blind, an auto-completed hand may result
     hand = finish_move(
         current_hand=hand,
@@ -171,11 +178,12 @@ def make_move(request, *args, **kwargs):
         serializer.is_valid(raise_exception=True)
         amount = Decimal(serializer.data['amount'])
 
-    hand_json = act_on_hand(
+    response_json = act_on_hand(
         action=action, 
         amount=amount,
         current_hand=current_hand,
     )
+    hand_json = response_json['hand']
     if action == 'bet':
         turn_off_auto_move_for_all_players(game_id=game_pk)
     if hand_json['round'] is not round_before_move:
@@ -184,7 +192,13 @@ def make_move(request, *args, **kwargs):
         current_hand=current_hand,
         hand_json=hand_json,
     )
-    serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
+    current_hand.force_reveal_cards_for_player_ids = response_json.get('force_reveal_cards_for_player_ids', [])
+    current_hand.save()
+    serializer = NoLimitHoldEmHandSerializer(
+        current_hand, 
+        context={'request': request},
+        current_player_id=request.user.id,
+    )
     return Response(serializer.data)
 
 @api_view(['POST'])
@@ -204,11 +218,13 @@ def force_move(request, *args, **kwargs):
     if not current_hand:
         return responses.bad_request("No hand currently being played.")
     player_user_id = hand_json_helpers.current_player_user_id(current_hand.hand_json)
-    hand_json = act_on_hand(
+    response_json = act_on_hand(
         action='force', 
         amount=None,
         current_hand=current_hand,
     )
+    hand_json = response_json['hand']
+    current_hand.force_reveal_cards_for_player_ids = response_json.get('force_reveal_cards_for_player_ids', [])
     current_hand = finish_move(
         current_hand=current_hand,
         hand_json=hand_json,
@@ -225,7 +241,11 @@ def force_move(request, *args, **kwargs):
             request=request,
         )
 
-    serializer = NoLimitHoldEmHandSerializer(current_hand, context={'request': request})
+    serializer = NoLimitHoldEmHandSerializer(
+        current_hand, 
+        context={'request': request},
+        current_player_id=request.user.id,
+    )
     return Response(serializer.data)
 
 @api_view(['POST'])
@@ -288,10 +308,16 @@ def show_cards(request, *args, **kwargs):
         'playerID':player_id,
         'hand': hand.hand_json,
     }
-    hand_json = send_request('show', data)
+    response_json = send_request('show', data)
+    hand_json = response_json['hand']
     hand.hand_json = hand_json
+    hand.force_reveal_cards_for_player_ids = response_json.get('force_reveal_cards_for_player_ids', [])
     hand.save()
-    serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+    serializer = NoLimitHoldEmHandSerializer(
+        hand, 
+        context={'request': request},
+        current_player_id=request.user.id,
+    )
     return Response(serializer.data)
 
 @api_view(['POST'])
@@ -310,12 +336,18 @@ def progress_round(request, *args, **kwargs):
     data = {
         'hand': hand.hand_json,
     }
-    hand_json = send_request('progressRound', data)
+    response_json = send_request('progressRound', data)
+    hand_json = response_json['hand']
+    hand.force_reveal_cards_for_player_ids = response_json.get('force_reveal_cards_for_player_ids', [])
     hand = finish_move(
         current_hand=hand,
         hand_json=hand_json,
     )
-    serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+    serializer = NoLimitHoldEmHandSerializer(
+        hand, 
+        context={'request': request},
+        current_player_id=request.user.id,
+    )
     return Response(serializer.data) 
 
 def act_on_hand(action, amount, current_hand):
@@ -389,15 +421,18 @@ def auto_move_if_needed(current_hand):
         table_member__user__id=user_id
     )
     if player.is_auto_move_on or not player.is_sitting:
-        hand_json = act_on_hand(
+        response_json = act_on_hand(
             action='force', 
             amount=None,
             current_hand=current_hand,
         )
+        hand_json = response_json['hand']
         current_hand = finish_move(
             current_hand=current_hand,
             hand_json=hand_json,
         )
+        current_hand.force_reveal_cards_for_player_ids = response_json.get('force_reveal_cards_for_player_ids', [])
+        current_hand.save()
     return current_hand
 
 @transaction.atomic
@@ -457,20 +492,21 @@ def notify_is_my_turn(current_hand):
                 user_id=player_user_id,
                 hand_json=current_hand.hand_json,
             )
-            pocket_cards_str = hand_json_helpers.pocket_cards_to_string(pocket_cards)
-            push_notifications.send_push(
-                to_user=table_member.user, 
-                text=pocket_cards_str + " " + board_cards_str,
-                title="Your turn", 
-                subtitle=table_member.table.name,
-                category=push_categories.IS_MY_TURN,
-                extra_data={
-                    "table_id": str(current_hand.game.table.id),
-                    "no_limit_hold_em_game_id": str(current_hand.game.id),
-                },
-                thread_id=push_categories.game_thread_id(current_hand.game.id),
-                collapse_id=push_categories.game_collapse_id(current_hand.game.id),
-            )
+            if pocket_cards:
+                pocket_cards_str = hand_json_helpers.pocket_cards_to_string(pocket_cards)
+                push_notifications.send_push(
+                    to_user=table_member.user, 
+                    text=pocket_cards_str + " " + board_cards_str,
+                    title="Your turn", 
+                    subtitle=table_member.table.name,
+                    category=push_categories.IS_MY_TURN,
+                    extra_data={
+                        "table_id": str(current_hand.game.table.id),
+                        "no_limit_hold_em_game_id": str(current_hand.game.id),
+                    },
+                    thread_id=push_categories.game_thread_id(current_hand.game.id),
+                    collapse_id=push_categories.game_collapse_id(current_hand.game.id),
+                )
 
 def notify_big_pot_subscribers(current_hand):
     hand_json = current_hand.hand_json

@@ -113,7 +113,11 @@ class HoldEmGameListView(generics.ListAPIView):
             })
             if game.id in hands_dict:
                 hand = hands_dict[game.id]
-                hand_serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+                hand_serializer = NoLimitHoldEmHandSerializer(
+                    hand, 
+                    context={'request': request},
+                    current_player_id=request.user.id,
+                )
                 game_list[-1]['hand'] = hand_serializer.data
         return self.get_paginated_response(game_list)
 
@@ -206,7 +210,11 @@ class CurrentHoldEmHandRetrieveView(generics.RetrieveAPIView):
         ).first()
         if not hand:
             return Response({'hand':None})
-        serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+        serializer = NoLimitHoldEmHandSerializer(
+            hand, 
+            context={'request': request},
+            current_player_id=request.user.id,
+        )
         return Response({'hand':serializer.data})
 
 class PlayerRetrieveView(generics.RetrieveAPIView):
@@ -301,7 +309,11 @@ class NoLimitHoldEmHandRetrieveView(generics.RetrieveAPIView):
         )
         if not my_table_member:
             return responses.user_not_in_table()
-        serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+        serializer = NoLimitHoldEmHandSerializer(
+            hand, 
+            context={'request': request},
+            current_player_id=request.user.id,
+        )
         return Response(serializer.data)
 
 class NoLimitHoldEmHandListView(generics.ListAPIView):
@@ -324,7 +336,12 @@ class NoLimitHoldEmHandListView(generics.ListAPIView):
             game__id=game_pk,
         )
         page = self.paginate_queryset(hands)
-        serializer = NoLimitHoldEmHandSerializer(page, many=True, context={'request': request})
+        serializer = NoLimitHoldEmHandSerializer(
+            page, 
+            many=True,
+            context={'request': request},
+            current_player_id=request.user.id,
+        )
         return self.get_paginated_response(serializer.data)
 
 @api_view(['POST'])

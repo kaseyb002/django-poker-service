@@ -91,7 +91,8 @@ def notify_no_limit_hold_em_game_hand_saved(sender, instance, created, **kwargs)
         "update_type": "hand",
         "hand": serializer.data,
     }
-    send_no_limit_hold_em_game_message(instance.game.id, data)
+    # TODO: POCKETCARDS
+    # send_no_limit_hold_em_game_message(instance.game.id, data)
 
 @receiver(post_save, sender=NoLimitHoldEmGame)
 def notify_no_limit_hold_em_game_saved(sender, instance, created, **kwargs):

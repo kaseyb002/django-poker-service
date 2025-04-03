@@ -77,7 +77,11 @@ class CurrentGameListView(generics.ListCreateAPIView):
             # add hold em hands
             if game.no_limit_hold_em_game.id in hands_dict:
                 hand = hands_dict[game.no_limit_hold_em_game.id]
-                hand_serializer = NoLimitHoldEmHandSerializer(hand, context={'request': request})
+                hand_serializer = NoLimitHoldEmHandSerializer(
+                    hand, 
+                    context={'request': request},
+                    current_player_id=request.user.id,
+                )
                 games[-1]['game']['no_limit_hold_em_hand'] = hand_serializer.data
 
             # add hold em players

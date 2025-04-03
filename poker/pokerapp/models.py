@@ -167,6 +167,10 @@ class NoLimitHoldEmHand(models.Model):
     players = models.ManyToManyField(NoLimitHoldEmGamePlayer)
     hand_json = models.JSONField(null=False, blank=False)
     hand_number = models.BigIntegerField(null=True)
+    force_reveal_cards_for_player_ids = models.JSONField(
+        default=list, 
+        blank=True
+    )
 
     def is_completed(self):
         return not self.completed
