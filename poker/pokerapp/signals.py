@@ -6,13 +6,13 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .utils import UUIDEncoder
 import json
+from datetime import datetime
 
 """
 Table Messages
 """
 @receiver(post_save, sender=Table)
 def notify_table_saved(sender, instance, created, **kwargs):
-    channel_layer = get_channel_layer()
     serializer = TableSerializer(instance)
     data = {
         "update_type": "table",
@@ -76,7 +76,6 @@ No Limit Hold Em Game Messages
 """
 @receiver(post_save, sender=NoLimitHoldEmGamePlayer)
 def notify_no_limit_hold_em_game_player_saved(sender, instance, created, **kwargs):
-    channel_layer = get_channel_layer()
     serializer = NoLimitHoldEmGamePlayerSerializer(instance)
     data = {
         "update_type": "player",
@@ -86,13 +85,16 @@ def notify_no_limit_hold_em_game_player_saved(sender, instance, created, **kwarg
 
 @receiver(post_save, sender=NoLimitHoldEmHand)
 def notify_no_limit_hold_em_game_hand_saved(sender, instance, created, **kwargs):
-    serializer = NoLimitHoldEmHandSerializer(instance)
+    hand_data = {
+        "hand_id": str(instance.id),
+        "game_id": str(instance.game.id),
+        "updated": instance.updated.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
     data = {
         "update_type": "hand",
-        "hand": serializer.data,
+        "hand": hand_data,
     }
-    # TODO: POCKETCARDS
-    # send_no_limit_hold_em_game_message(instance.game.id, data)
+    send_no_limit_hold_em_game_message(instance.game.id, data)
 
 @receiver(post_save, sender=NoLimitHoldEmGame)
 def notify_no_limit_hold_em_game_saved(sender, instance, created, **kwargs):
@@ -119,7 +121,6 @@ Chat message
 """
 @receiver(post_save, sender=ChatMessage)
 def notify_chat_message_saved(sender, instance, created, **kwargs):
-    channel_layer = get_channel_layer()
     serializer = ChatMessageSerializer(instance)
     data = {
         "update_type": "message",

@@ -26,7 +26,6 @@ def send_request(path, data):
     response = requests.post(url, json=json_body)
     if response.status_code != 200:
         raise errors.PokerServiceError(response.json().get('reason', "Unknown error."))
-    print(response.json())
     return response.json()
 
 def valid_current_hand(game_id):
