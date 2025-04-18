@@ -94,6 +94,7 @@ class TableSerializer(serializers.ModelSerializer):
             'created', 
             'name', 
             'image_url',
+            'background_image_url',
             'tagline',
             'description',
         ]

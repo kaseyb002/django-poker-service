@@ -310,7 +310,7 @@ def show_cards(request, *args, **kwargs):
     response_json = send_request('show', data)
     hand_json = response_json['hand']
     hand.hand_json = hand_json
-    hand.force_reveal_cards_for_player_ids = response_json.get('force_reveal_cards_for_player_ids', [])
+    hand.force_reveal_cards_for_player_ids = hand_json.get('force_reveal_cards_for_player_ids', [])
     hand.save()
     serializer = NoLimitHoldEmHandSerializer(
         hand, 

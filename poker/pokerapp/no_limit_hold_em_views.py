@@ -526,6 +526,16 @@ def add_chips(request, *args, **kwargs):
     )
     adjustment.save()
 
+    game = get_object_or_404(
+        NoLimitHoldEmGame,
+        pk=game_pk,
+    )
+
+    if player.chip_count < game.big_blind and player.is_sitting:
+        # if the player is sitting, we need to sit them out
+        player.is_sitting = False
+        player.save()
+
     if player.table_member.notification_settings.my_chips_adjusted and player.table_member.user.id != request.user.id:
         title = "Chips added"
         if amount < 0:

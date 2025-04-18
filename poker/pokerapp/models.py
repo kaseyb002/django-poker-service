@@ -23,6 +23,7 @@ class Table(models.Model):
     tagline = models.CharField(max_length=40, blank=True)
     description = models.CharField(max_length=2000, blank=True)
     image_url = models.URLField(null=True, blank=True)
+    background_image_url = models.URLField(null=True, blank=True)
     join_on_account_sign_up = models.BooleanField(default=False)
 
     class Meta:
