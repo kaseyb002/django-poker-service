@@ -10,6 +10,7 @@ from . import table_member_write_helpers
 from . import table_member_fetchers, game_views
 from . import responses
 from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
 
 class TableRetrieveView(generics.RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated]
@@ -108,3 +109,109 @@ class TableListView(generics.ListCreateAPIView):
 
         serializer = TableSerializer(table, context={'request': request})
         return Response(serializer.data)
+
+class StaticBackgroundsView(APIView):
+    def get(self, request):
+        data = [
+            {
+                "id": "alps",
+                "title": "Bavarian Alps",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984762/alps_uhv26s.jpg"
+            },
+            {
+                "id": "campout",
+                "title": "Campout",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984759/campout_e33o3r.jpg"
+            },
+            {
+                "id": "classroom",
+                "title": "Classroom",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984760/classroom_za0fqt.jpg"
+            },
+            {
+                "id": "dojo",
+                "title": "Dojo",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984758/dojo_qymwqh.jpg"
+            },
+            {
+                "id": "garden",
+                "title": "Garden",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984763/garden_kynbap.jpg"
+            },
+            {
+                "id": "gym",
+                "title": "Gym",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984764/basketball_gym_ypirkr.jpg"
+            },
+            {
+                "id": "coffeeShop",
+                "title": "Coffee Shop",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984755/coffee_shop_y2pecz.jpg"
+            },
+            {
+                "id": "beach",
+                "title": "Kailua-Kona",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984757/beach_eoiyat.jpg"
+            },
+            {
+                "id": "garage",
+                "title": "Garage",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984770/garage_gkjg7y.jpg"
+            },
+            {
+                "id": "kitchen",
+                "title": "Kitchen",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984761/kitchen_zo8qnf.jpg"
+            },
+            {
+                "id": "richHouse",
+                "title": "Fancy House",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984776/richGuysHouse_dpntvv.jpg"
+            },
+            {
+                "id": "newYorkCity",
+                "title": "New York City",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984774/newYorkCity_p2mhqa.jpg"
+            },
+            {
+                "id": "mexico",
+                "title": "Mexico",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984772/mexico_klmlly.jpg"
+            },
+            {
+                "id": "singapore",
+                "title": "Singapore",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984778/singapore_ewbk07.jpg"
+            },
+            {
+                "id": "dubai",
+                "title": "Dubai",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984768/dubai_io3hyf.jpg"
+            },
+            {
+                "id": "paris",
+                "title": "Paris",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984775/paris_evseyh.jpg"
+            },
+            {
+                "id": "london",
+                "title": "London",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984771/london_fpvez1.jpg"
+            },
+            {
+                "id": "tokyo",
+                "title": "Tokyo",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984779/tokyo_szsv6c.jpg"
+            },
+            {
+                "id": "vegas",
+                "title": "Vegas",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984780/vegas_mslhfk.jpg"
+            },
+            {
+                "id": "basement",
+                "title": "Scott's Basement",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984755/basement_qfpyeg.jpg"
+            }
+        ]
+        return Response(data)

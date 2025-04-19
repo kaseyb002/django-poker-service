@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .table_views import TableListView, TableRetrieveView
+from .table_views import TableListView, TableRetrieveView, StaticBackgroundsView
 from .table_settings_views import TableSettingsRetrieveView
 from .table_member_views import MyTableMemberRetrieveView, TableMemberRetrieveView, TableMemberListView
 from .table_invite_views import TableInviteListView, TableInviteRetrieveView
@@ -38,6 +38,7 @@ urlpatterns = [
     path('tables/<uuid:table_pk>/current_game/no_limit_hold_em/current_hand', CurrentHoldEmHandRetrieveView.as_view(), name='current-hold-em-hand'),
     path('tables/<uuid:table_pk>/current_game/stage_10', CurrentStage10GameRetrieveView.as_view(), name='current-stage-10-game'),
     path('tables/<uuid:table_pk>/new_game', CurrentGameListView.as_view(), name='new-game'),
+    path("tables/backgrounds", StaticBackgroundsView.as_view(), name="static-backgrounds"),
 
     # members
     path('tables/<uuid:table_pk>/members', TableMemberListView.as_view(), name='table-members'),
