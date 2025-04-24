@@ -30,7 +30,7 @@ class HoldEmGameRetrieveView(generics.RetrieveUpdateAPIView):
             NoLimitHoldEmGame,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -45,7 +45,7 @@ class HoldEmGameRetrieveView(generics.RetrieveUpdateAPIView):
             NoLimitHoldEmGame,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -74,7 +74,7 @@ class HoldEmGameListView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -126,7 +126,7 @@ class CurrentHoldEmGameRetrieveView(generics.RetrieveAPIView):
     
     def get(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -150,7 +150,7 @@ class SelectHoldEmGameUpdateView(generics.UpdateAPIView):
             NoLimitHoldEmGame,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -196,7 +196,7 @@ class CurrentHoldEmHandRetrieveView(generics.RetrieveAPIView):
         )
         if not game:
             return responses.not_found("Game not found.")
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -227,7 +227,7 @@ class PlayerRetrieveView(generics.RetrieveAPIView):
             user_id=user_pk,
             game_id=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=player.game.table.id,
         )
@@ -246,7 +246,7 @@ class PlayerListView(generics.ListAPIView):
             NoLimitHoldEmGame,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -272,7 +272,7 @@ class SittingPlayersListView(generics.ListAPIView):
             NoLimitHoldEmGame,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -303,7 +303,7 @@ class NoLimitHoldEmHandRetrieveView(generics.RetrieveAPIView):
             NoLimitHoldEmHand,
             pk=hand_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -326,7 +326,7 @@ class NoLimitHoldEmHandListView(generics.ListAPIView):
             NoLimitHoldEmGame,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -354,7 +354,7 @@ def sit(request, *args, **kwargs):
         NoLimitHoldEmGame,
         pk=game_pk,
     )
-    table_member = table_member_fetchers.get_table_member(
+    table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -412,7 +412,7 @@ def sit_out(request, *args, **kwargs):
     game = NoLimitHoldEmGame.objects.get(
         pk=game_pk
     )
-    table_member = table_member_fetchers.get_table_member(
+    table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -436,7 +436,7 @@ def sit_player_out(request, *args, **kwargs):
         user_id=user_pk,
         game_id=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=player.game.table.id,
     )
@@ -483,7 +483,7 @@ def add_chips(request, *args, **kwargs):
         user_id=user_pk,
         game_id=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=player.game.table.id,
     )

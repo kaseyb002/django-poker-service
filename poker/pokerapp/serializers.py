@@ -153,6 +153,8 @@ class TableNotificationSettingsSerializer(serializers.ModelSerializer):
         ]
 
 class TableInviteSerializer(serializers.ModelSerializer):
+    invite_url = serializers.SerializerMethodField()
+
     class Meta:
         model = TableInvite
         fields = [
@@ -165,7 +167,11 @@ class TableInviteSerializer(serializers.ModelSerializer):
             'used_by',
             'used_by_username',
             'used_by_image_url',
+            'invite_url',
         ]
+
+    def get_invite_url(self, obj):
+        return f"https://queen3.app/tables/join?code={obj.code}"
 
 class TableMemberSerializer(serializers.ModelSerializer):
     permissions = TablePermissionsSerializer(read_only=True)

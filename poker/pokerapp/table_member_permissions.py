@@ -19,14 +19,14 @@ class TableMemberPermissionsUpdateView(generics.UpdateAPIView):
     def update(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
         user_id = self.kwargs.get('user_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
         if not my_table_member.permissions.can_edit_permissions:
             return responses.forbidden("User cannot edit permissions")
 
-        table_member = table_member_fetchers.get_table_member(
+        table_member = table_member_fetchers.get_table_member_or_404(
             user_id=user_id, 
             table_id=table_pk,
         )

@@ -12,7 +12,7 @@ def get_or_make_game_player(user_id, game_id):
             NoLimitHoldEmGame,
             pk=game_id,
         )
-        table_member = table_member_fetchers.get_table_member(
+        table_member = table_member_fetchers.get_table_member_or_404(
             user_id=user_id, 
             table_id=game.table.id,
         )

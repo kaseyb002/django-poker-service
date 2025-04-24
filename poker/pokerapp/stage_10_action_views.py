@@ -48,7 +48,7 @@ def start(request, *args, **kwargs):
         Stage10Game,
         pk=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -118,7 +118,7 @@ def pickup_card(request, *args, **kwargs):
         Stage10Game,
         pk=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -157,7 +157,7 @@ def discard(request, *args, **kwargs):
         Stage10Game,
         pk=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -197,7 +197,7 @@ def complete_stage(request, *args, **kwargs):
         Stage10Game,
         pk=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )

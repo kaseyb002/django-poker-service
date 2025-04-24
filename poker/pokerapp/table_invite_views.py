@@ -55,7 +55,7 @@ def leave_table(request, *args, **kwargs):
     Leaves the table
     """
     table_pk = kwargs.get('table_pk')
-    table_member = table_member_fetchers.get_table_member(
+    table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=table_pk,
     )
@@ -94,20 +94,30 @@ class TableInviteListView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         is_one_time_code = serializer.data.get('is_one_time_code', True)
         table_pk = self.kwargs.get('table_pk')
-        table_member = table_member_fetchers.get_table_member(
+        table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
         if not table_member.permissions.can_send_invite:
             return responses.forbidden("User does not have invite permissions.")
-        invite = TableInvite.objects.create(
-            created_by=request.user,
-            table=table_member.table,
-            code=shortuuid.uuid(),
-            is_one_time=is_one_time_code,
-        )
-        serializer = TableInviteSerializer(invite, context={'request': request})
-        return Response(serializer.data)
+        # if not is_one_time_code, and a non one_time_code code already exists, then just return that one_time_code
+        existing_invite = TableInvite.objects.filter(
+            table__pk=table_pk,
+            created_by__id=request.user.id,
+            is_one_time=False
+        ).first()
+        if existing_invite:
+            serializer = TableInviteSerializer(existing_invite, context={'request': request})
+            return Response(serializer.data)
+        else:
+            invite = TableInvite.objects.create(
+                created_by=request.user,
+                table=table_member.table,
+                code=shortuuid.uuid(),
+                is_one_time=is_one_time_code,
+            )
+            serializer = TableInviteSerializer(invite, context={'request': request})
+            return Response(serializer.data)
 
 class TableInviteRetrieveView(generics.DestroyAPIView):
     permission_classes = [IsAuthenticated]
@@ -118,7 +128,7 @@ class TableInviteRetrieveView(generics.DestroyAPIView):
             TableInvite, 
             pk=invite_pk
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=invite.table.id,
         )

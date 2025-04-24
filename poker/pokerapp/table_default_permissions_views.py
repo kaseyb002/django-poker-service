@@ -15,7 +15,7 @@ class DefaultTablePermissionsRetrieveUpdateView(generics.RetrieveUpdateAPIView):
 
     def get(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -32,7 +32,7 @@ class DefaultTablePermissionsRetrieveUpdateView(generics.RetrieveUpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )

@@ -19,7 +19,7 @@ class TableChatMetadataRetrieveView(generics.RetrieveAPIView):
             Table, 
             pk=table_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -42,7 +42,7 @@ class TableChatMessageListView(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -72,7 +72,7 @@ class TableChatMessageListView(generics.ListCreateAPIView):
         text = serializer.data['text']
         table_pk = self.kwargs.get('table_pk')
 
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -114,7 +114,7 @@ class TableChatMessageDetailView(generics.DestroyAPIView):
     def delete(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
         message_pk = self.kwargs.get('message_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )

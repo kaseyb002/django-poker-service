@@ -44,7 +44,7 @@ def deal(request, *args, **kwargs):
         NoLimitHoldEmGame,
         pk=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -156,7 +156,7 @@ def make_move(request, *args, **kwargs):
         NoLimitHoldEmGame,
         pk=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -207,7 +207,7 @@ def force_move(request, *args, **kwargs):
         NoLimitHoldEmGame,
         pk=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -259,7 +259,7 @@ def toggle_auto_move(request, *args, **kwargs):
         NoLimitHoldEmGame,
         pk=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -294,7 +294,7 @@ def show_cards(request, *args, **kwargs):
         NoLimitHoldEmHand,
         pk=hand_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=hand.game.table.id,
     )
@@ -310,7 +310,7 @@ def show_cards(request, *args, **kwargs):
     response_json = send_request('show', data)
     hand_json = response_json['hand']
     hand.hand_json = hand_json
-    hand.force_reveal_cards_for_player_ids = hand_json.get('force_reveal_cards_for_player_ids', [])
+    hand.force_reveal_cards_for_player_ids = response_json.get('force_reveal_cards_for_player_ids', [])
     hand.save()
     serializer = NoLimitHoldEmHandSerializer(
         hand, 
@@ -326,7 +326,7 @@ def progress_round(request, *args, **kwargs):
         NoLimitHoldEmHand,
         pk=hand_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=hand.game.table.id,
     )
@@ -445,7 +445,7 @@ def turn_off_auto_move_for_all_players(game_id):
         player.save()
 
 def notify_i_was_forced_moved(current_hand, player_user_id, request):
-    table_member = table_member_fetchers.get_table_member(
+    table_member = table_member_fetchers.get_table_member_or_404(
         user_id=player_user_id,
         table_id=current_hand.game.table.id,
     )
@@ -473,7 +473,7 @@ def notify_i_was_forced_moved(current_hand, player_user_id, request):
 def notify_is_my_turn(current_hand):
     player_user_id = hand_json_helpers.current_player_user_id(current_hand.hand_json)
     if player_user_id:
-        table_member = table_member_fetchers.get_table_member(
+        table_member = table_member_fetchers.get_table_member_or_404(
             user_id=player_user_id,
             table_id=current_hand.game.table.id,
         )
@@ -511,7 +511,7 @@ def notify_big_pot_subscribers(current_hand):
     hand_json = current_hand.hand_json
     (max_net_gain, player_user_id) = hand_json_helpers.biggest_net_gain(hand_json)
     if max_net_gain > current_hand.game.big_blind * 50:
-        table_member = table_member_fetchers.get_table_member(
+        table_member = table_member_fetchers.get_table_member_or_404(
             user_id=player_user_id,
             table_id=current_hand.game.table.id,
             check_deleted=False,
@@ -539,7 +539,7 @@ def notify_winners_and_losers(current_hand):
     winners = hand_json_helpers.get_players_with_net_gain(hand_json=hand_json)
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
     for winner in winners:
-        table_member = table_member_fetchers.get_table_member(
+        table_member = table_member_fetchers.get_table_member_or_404(
             user_id=winner['player_id'],
             table_id=current_hand.game.table.id,
         )
@@ -561,7 +561,7 @@ def notify_winners_and_losers(current_hand):
             )
     losers = hand_json_helpers.get_players_with_net_loss(hand_json=hand_json)
     for loser in losers:
-        table_member = table_member_fetchers.get_table_member(
+        table_member = table_member_fetchers.get_table_member_or_404(
             user_id=winner['player_id'],
             table_id=current_hand.game.table.id,
         )

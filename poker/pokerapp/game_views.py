@@ -19,7 +19,7 @@ class CurrentGameRetrieveView(generics.RetrieveAPIView):
     
     def get(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -101,7 +101,7 @@ class CurrentGameListView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         table_pk = self.kwargs.get('table_pk')
         game_type = serializer.validated_data['game_type']
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )

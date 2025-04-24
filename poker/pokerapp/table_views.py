@@ -32,7 +32,7 @@ class TableRetrieveView(generics.RetrieveUpdateAPIView):
             Table,
             pk=table_pk
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table.id,
         )

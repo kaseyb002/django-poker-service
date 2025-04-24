@@ -30,7 +30,7 @@ class Stage10GameRetrieveView(generics.RetrieveUpdateAPIView):
             Stage10Game,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -45,7 +45,7 @@ class Stage10GameRetrieveView(generics.RetrieveUpdateAPIView):
             Stage10Game,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -67,7 +67,7 @@ class Stage10GameListView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -87,7 +87,7 @@ class CurrentStage10GameRetrieveView(generics.RetrieveAPIView):
     
     def get(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -111,7 +111,7 @@ class SelectStage10GameUpdateView(generics.UpdateAPIView):
             Stage10Game,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -161,7 +161,7 @@ class CurrentStage10RoundRetrieveView(generics.RetrieveAPIView):
         )
         if not game:
             return responses.not_found("Game not found.")
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -188,7 +188,7 @@ class Stage10PlayerRetrieveView(generics.RetrieveAPIView):
             user_id=user_pk,
             game_id=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=player.game.table.id,
         )
@@ -207,7 +207,7 @@ class Stage10PlayerListView(generics.ListAPIView):
             Stage10Game,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -233,7 +233,7 @@ class Stage10SittingPlayersListView(generics.ListAPIView):
             Stage10Game,
             pk=game_pk,
         )
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=game.table.id,
         )
@@ -260,7 +260,7 @@ def sit(request, *args, **kwargs):
         Stage10Game,
         pk=game_pk,
     )
-    table_member = table_member_fetchers.get_table_member(
+    table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -319,7 +319,7 @@ def sit_out(request, *args, **kwargs):
     game = Stage10Game.objects.get(
         pk=game_pk
     )
-    table_member = table_member_fetchers.get_table_member(
+    table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=game.table.id,
     )
@@ -343,7 +343,7 @@ def sit_player_out(request, *args, **kwargs):
         user_id=user_pk,
         game_id=game_pk,
     )
-    my_table_member = table_member_fetchers.get_table_member(
+    my_table_member = table_member_fetchers.get_table_member_or_404(
         user_id=request.user.id, 
         table_id=player.game.table.id,
     )

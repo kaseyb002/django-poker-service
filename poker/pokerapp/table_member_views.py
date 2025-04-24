@@ -16,7 +16,7 @@ class MyTableMemberRetrieveView(generics.RetrieveAPIView):
     
     def get(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -31,7 +31,7 @@ class TableMemberRetrieveView(generics.RetrieveDestroyAPIView):
     def get(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
         user_pk = self.kwargs.get('user_pk')
-        table_member = table_member_fetchers.get_table_member(
+        table_member = table_member_fetchers.get_table_member_or_404(
             user_id=user_pk, 
             table_id=table_pk,
         )
@@ -43,13 +43,13 @@ class TableMemberRetrieveView(generics.RetrieveDestroyAPIView):
     def delete(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
         user_pk = self.kwargs.get('user_pk')
-        table_member = table_member_fetchers.get_table_member(
+        table_member = table_member_fetchers.get_table_member_or_404(
             user_id=user_pk, 
             table_id=table_pk,
         )
         if not table_member:
             raise Http404("Table member not found.")
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )
@@ -72,7 +72,7 @@ class TableMemberListView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         table_pk = self.kwargs.get('table_pk')
-        my_table_member = table_member_fetchers.get_table_member(
+        my_table_member = table_member_fetchers.get_table_member_or_404(
             user_id=request.user.id, 
             table_id=table_pk,
         )

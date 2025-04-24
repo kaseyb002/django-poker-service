@@ -17,10 +17,7 @@ def is_players_turn(user_id, hand_json):
     return str(user_id) == current_player_id
 
 def pocket_cards_for_user(user_id, hand_json):
-    for player_hand in hand_json['player_hands']:
-        if player_hand['player']['id'] == str(user_id):
-            return player_hand.get('pocket_cards', [])
-    return []
+    return hand_json.get('pocket_cards', {}).get(str(user_id), None)
 
 def is_player_waiting_to_move(user_id, hand_json):
     if is_hand_complete(hand_json):
