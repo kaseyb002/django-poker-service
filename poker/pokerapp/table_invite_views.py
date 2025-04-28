@@ -106,7 +106,7 @@ class TableInviteListView(generics.ListCreateAPIView):
             created_by__id=request.user.id,
             is_one_time=False
         ).first()
-        if existing_invite:
+        if existing_invite and not is_one_time_code:
             serializer = TableInviteSerializer(existing_invite, context={'request': request})
             return Response(serializer.data)
         else:
@@ -119,8 +119,28 @@ class TableInviteListView(generics.ListCreateAPIView):
             serializer = TableInviteSerializer(invite, context={'request': request})
             return Response(serializer.data)
 
-class TableInviteRetrieveView(generics.DestroyAPIView):
+class TableInviteRetrieveView(generics.RetrieveDestroyAPIView):
     permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        invite_pk = self.kwargs.get('invite_pk')
+        invite = get_object_or_404(
+            TableInvite, 
+            pk=invite_pk
+        )
+        my_table_member = table_member_fetchers.get_table_member_or_404(
+            user_id=request.user.id, 
+            table_id=invite.table.id,
+        )
+        if not my_table_member:
+            return responses.forbidden("User is not a member of this table.")
+        if my_table_member.user != invite.created_by:
+            return responses.forbidden("User did not create this invite.")
+        serializer = TableInviteSerializer(
+            invite,
+            context={'request': request},
+        )
+        return Response(serializer.data)
 
     def delete(self, request, *args, **kwargs):
         invite_pk = self.kwargs.get('invite_pk')
