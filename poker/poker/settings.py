@@ -22,7 +22,10 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     '67.207.89.246',
+    'api.queen3.app',
 ]
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 ASGI_APPLICATION = "poker.asgi.application"
@@ -38,11 +41,18 @@ INSTALLED_APPS = [
     'rest_framework',
     'pokerapp',
     'rest_framework.authtoken',
+    'django.contrib.sites',  # Needed for allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.apple',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -151,3 +161,15 @@ FIREBASE_AUTH_KEY = "2f76089f7c9b0699e66f8a4cbb64d103454f9cdf"
 FIREBASE_SENDER_ID = 634815250148
 
 FIREBASE_FILE_PATH = "/home/kasey/django-poker-service/pokerface-account-file.json"
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = (
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+)
+
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # Or 'mandatory'
