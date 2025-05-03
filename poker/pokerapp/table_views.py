@@ -174,6 +174,36 @@ class StaticBackgroundsView(APIView):
                 "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746280043/pemberley_lhqfxo.jpg"
             },
             {
+                "id": "skyscraper",
+                "title": "Skyscraper",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/skyscraper_lxv9ug.jpg"
+            },
+            {
+                "id": "lumberYard",
+                "title": "Lumber Yard",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/lumber_yard_y2gms6.jpg"
+            },
+            {
+                "id": "streetCorner",
+                "title": "Street Corner",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/street_corner_q42ivv.jpg"
+            },
+            {
+                "id": "streetCornerDark",
+                "title": "Street Corner (Dark)",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/street_corner_dark_aejp6y.jpg"
+            },
+            {
+                "id": "trench",
+                "title": "WWI Trench",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/trench_usjoui.jpg"
+            },
+            {
+                "id": "library",
+                "title": "Law Library",
+                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746283944/library_svw4te.png"
+            },
+            {
                 "id": "newYorkCity",
                 "title": "New York City",
                 "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984774/newYorkCity_p2mhqa.jpg"
@@ -212,31 +242,6 @@ class StaticBackgroundsView(APIView):
                 "id": "vegas",
                 "title": "Vegas",
                 "image_url": "https://res.cloudinary.com/eggler/image/upload/v1744984780/vegas_mslhfk.jpg"
-            },
-            {
-                "id": "skyscraper",
-                "title": "Skyscraper",
-                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/skyscraper_lxv9ug.jpg"
-            },
-            {
-                "id": "lumberYard",
-                "title": "Lumber Yard",
-                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/lumber_yard_y2gms6.jpg"
-            },
-            {
-                "id": "streetCorner",
-                "title": "Street Corner",
-                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/street_corner_q42ivv.jpg"
-            },
-            {
-                "id": "streetCornerDark",
-                "title": "Street Corner (Dark)",
-                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/street_corner_dark_aejp6y.jpg"
-            },
-            {
-                "id": "trench",
-                "title": "WWI Trench",
-                "image_url": "https://res.cloudinary.com/eggler/image/upload/v1746271494/trench_usjoui.jpg"
             },
             {
                 "id": "basement",
