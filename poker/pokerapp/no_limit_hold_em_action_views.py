@@ -562,7 +562,7 @@ def notify_winners_and_losers(current_hand):
     losers = hand_json_helpers.get_players_with_net_loss(hand_json=hand_json)
     for loser in losers:
         table_member = table_member_fetchers.get_table_member_or_404(
-            user_id=winner['player_id'],
+            user_id=loser['player_id'],
             table_id=current_hand.game.table.id,
         )
         if table_member.notification_settings.i_lost_hand:
