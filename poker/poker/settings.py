@@ -162,7 +162,7 @@ FIREBASE_SENDER_ID = 634815250148
 
 FIREBASE_FILE_PATH = "/home/kasey/django-poker-service/pokerface-account-file.json"
 
-SITE_ID = 1
+SITE_ID = 2
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
