@@ -15,7 +15,7 @@ from . import stage_10_game_views
 from .stage_10_game_views import Stage10GameRetrieveView, Stage10GameListView, CurrentStage10GameRetrieveView, SelectStage10GameUpdateView, Stage10PlayerListView, Stage10PlayerRetrieveView, Stage10SittingPlayersListView, CurrentStage10RoundRetrieveView
 from . import stage_10_action_views
 from django.urls import path
-from .social_accounts import GoogleLogin
+from .social_accounts import GoogleLogin, AppleLoginView
 
 urlpatterns = [
     path('auth/google/', GoogleLogin.as_view(), name='google_login'),
@@ -25,6 +25,7 @@ urlpatterns = [
     # user 
     path('api-auth/', include('rest_framework.urls')),
     path('auth/google', GoogleLogin.as_view(), name='google_login'),
+    path('auth/apple', AppleLoginView.as_view(), name='apple_login'),
     path('account/register', user_views.register, name='register'),
     path('account/api-token-auth', user_views.CustomAuthToken.as_view(), name='login'),
     path('account/my_user', user_views.my_user, name='my-user'),
