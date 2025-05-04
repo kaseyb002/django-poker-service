@@ -471,41 +471,87 @@ def notify_i_was_forced_moved(current_hand, player_user_id, request):
         )
 
 def notify_is_my_turn(current_hand):
-    player_user_id = hand_json_helpers.current_player_user_id(current_hand.hand_json)
-    if player_user_id:
-        table_member = table_member_fetchers.get_table_member_or_404(
-            user_id=player_user_id,
-            table_id=current_hand.game.table.id,
-        )
-        if table_member.notification_settings.is_my_turn:
-            board_cards = hand_json_helpers.board_cards(current_hand.hand_json)
-            board_cards_str = hand_json_helpers.board_cards_to_string(
-                board_cards=board_cards, 
-                round=current_hand.hand_json.get('round', 0),
-            )
-            if board_cards_str == "":
-                board_cards_str = "Preflop"
-            else:
-                board_cards_str = "Board: " + board_cards_str
-            pocket_cards = hand_json_helpers.pocket_cards_for_user(
-                user_id=player_user_id,
-                hand_json=current_hand.hand_json,
-            )
-            if pocket_cards:
-                pocket_cards_str = hand_json_helpers.pocket_cards_to_string(pocket_cards)
-                push_notifications.send_push(
-                    to_user=table_member.user, 
-                    text=pocket_cards_str + " " + board_cards_str,
-                    title="Your turn", 
-                    subtitle=table_member.table.name,
-                    category=push_categories.IS_MY_TURN,
-                    extra_data={
-                        "table_id": str(current_hand.game.table.id),
-                        "no_limit_hold_em_game_id": str(current_hand.game.id),
-                    },
-                    thread_id=push_categories.game_thread_id(current_hand.game.id),
-                    collapse_id=push_categories.game_collapse_id(current_hand.game.id),
-                )
+    hand_json = current_hand.hand_json
+    player_user_id = hand_json_helpers.current_player_user_id(hand_json)
+    if not player_user_id:
+        return
+
+    table_member = table_member_fetchers.get_table_member_or_404(
+        user_id=player_user_id,
+        table_id=current_hand.game.table.id,
+    )
+
+    if not table_member.notification_settings.is_my_turn:
+        return
+
+    # --- Get board string ---
+    board_cards = hand_json_helpers.board_cards(hand_json)
+    board_cards_str = hand_json_helpers.board_cards_to_string(
+        board_cards=board_cards, 
+        round=hand_json.get('round', 0),
+    )
+    board_cards_str = "Board: " + board_cards_str if board_cards_str else "Preflop"
+
+    # --- Get pocket cards string ---
+    pocket_cards = hand_json_helpers.pocket_cards_for_user(
+        user_id=player_user_id,
+        hand_json=hand_json,
+    )
+    pocket_cards_str = hand_json_helpers.pocket_cards_to_string(pocket_cards) if pocket_cards else ""
+
+    # --- Get latest action string ---
+    latest_action_str = ""
+    actions_by_round = hand_json.get("log", {}).get("actions", {})
+    current_round_key = {
+        0: "preflop_actions",
+        1: "flop_actions",
+        2: "turn_actions",
+        3: "river_actions",
+    }.get(hand_json.get("round", 0))
+
+    round_actions = actions_by_round.get(current_round_key, [])
+    if round_actions:
+        last_action = round_actions[-1]
+        player_id = last_action["player_id"]
+        player_name = hand_json_helpers.player_name_by_id(hand_json, player_id)
+        decision = last_action["decision"]
+
+        # Simple formatter for readable decision text
+        if "fold" in decision:
+            latest_action_str = f"{player_name} folds."
+        elif "check" in decision:
+            latest_action_str = f"{player_name} checks."
+        elif "call" in decision:
+            amt = decision["call"]["amount"]
+            latest_action_str = f"{player_name} calls ${amt:.2f}."
+        elif "bet" in decision:
+            amt = decision["bet"]["amount"]
+            latest_action_str = f"{player_name} bets ${amt:.2f}."
+        elif "raise" in decision:
+            amt = decision["raise"]["amount"]
+            latest_action_str = f"{player_name} raises to ${amt:.2f}."
+        elif "post_big_blind" in decision:
+            amt = decision["post_big_blind"]["amount"]
+            latest_action_str = f"{player_name} posts big blind ${amt:.2f}."
+        elif "post_small_blind" in decision:
+            amt = decision["post_small_blind"]["amount"]
+            latest_action_str = f"{player_name} posts small blind ${amt:.2f}."
+
+    # --- Send the push ---
+    body = " ".join(part for part in [latest_action_str, pocket_cards_str, board_cards_str] if part)
+    push_notifications.send_push(
+        to_user=table_member.user, 
+        text=body,
+        title="Your turn", 
+        subtitle=table_member.table.name,
+        category=push_categories.IS_MY_TURN,
+        extra_data={
+            "table_id": str(current_hand.game.table.id),
+            "no_limit_hold_em_game_id": str(current_hand.game.id),
+        },
+        thread_id=push_categories.game_thread_id(current_hand.game.id),
+        collapse_id=push_categories.game_collapse_id(current_hand.game.id),
+    )
 
 def notify_big_pot_subscribers(current_hand):
     hand_json = current_hand.hand_json

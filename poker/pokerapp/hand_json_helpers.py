@@ -136,3 +136,12 @@ def card_to_string(card):
         'h': '♥️',  # Hearts
     }
     return f"{card['rank'].upper()}{suit_symbols[card['suit']]}"
+
+def player_name_by_id(hand_json: dict, player_id: str) -> str:
+    """Returns the name of the player with the given ID, or 'Unknown' if not found."""
+    player_hands = hand_json.get("player_hands") or hand_json.get("log", {}).get("starting_player_hands", [])
+    for hand in player_hands:
+        player = hand.get("player")
+        if player and str(player.get("id")) == str(player_id):
+            return player.get("name", "Unknown")
+    return "Unknown"
